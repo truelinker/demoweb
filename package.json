@@ -1,0 +1,40 @@
+{
+  "name": "demoweb",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "convert-blog": "node scripts/convert-blog.js",
+    "rename-oldblog": "node scripts/rename-oldblog.js",
+    "content-copy": "node scripts/content-aware-copy.js",
+    "json-to-markdown": "node scripts/json-to-markdown.js",
+    "fix-image-paths": "node scripts/fix-image-paths.js",
+    "clear-cache": "node scripts/clear-next-cache.js"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "gray-matter": "^4.0.3",
+    "next": "15.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "slugify": "^1.6.6",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

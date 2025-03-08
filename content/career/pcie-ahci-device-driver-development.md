@@ -1,0 +1,138 @@
+---
+title: "PCIe AHCI Device Driver Development"
+subtitle: "Implementing High-Performance Storage Interface for Hybrid HDD Systems"
+excerpt: "Deep dive into PCIe AHCI Device Driver development for Hybrid HDD systems, focusing on performance optimization and hardware integration."
+date: 2022-08-30
+author: "Myung Guk Lee"
+draft: false
+images:
+  - /career/assets/tachyons-thumbnail.png
+  - /career/assets/tachyons-logo-script-feature.png
+series:
+  - Device Driver Development
+tags:
+  - PCIe
+  - AHCI
+  - Device Drivers
+  - Storage Systems
+  - Embedded Systems
+categories:
+  - Technical Projects
+# layout options: single or single-sidebar
+layout: single
+---
+
+
+## Project Overview
+
+Led the development of a PCIe AHCI device driver for a Solid State Hybrid Drive (SSHD) system. This innovative storage solution combines HDD capacity with SSD performance by utilizing a PCIe-connected SSD cache for frequently accessed data.
+
+## Technical Architecture
+
+### System Overview
+The SSHD architecture integrates traditional HDD storage with a PCIe-connected SSD cache:
+
+![alt](/images/blog/sshd-architecture.png)
+*Figure 1: High-level architecture of the Hybrid Storage System*
+
+### PCIe Port Initialization Flow
+
+The PCIe controller initialization follows a precise sequence to ensure reliable operation:
+
+![alt](/images/blog/pcie_port_open_flow.png)
+*Figure 2: Detailed PCIe port initialization sequence*
+
+## Implementation Details
+
+### Driver Architecture
+The PCIe AHCI driver implementation was structured around three key components:
+
+![alt](/images/blog/PCIeOverall.png)
+
+*Figure 3: PCIe AHCI Driver Architecture*
+
+### Memory Mapping Strategy
+
+Implemented efficient BAR (Base Address Register) mapping for optimal performance:
+
+![alt](/images/blog/BarMap.png)
+*Figure 4: Base Address Register mapping architecture*
+
+### Key Implementation Steps
+
+1. **PCIe Configuration Space Management**
+   #### Configuration Space Layout
+![alt](/images/blog/pcie-config-space.png)
+*Figure: PCIe Configuration Space Structure*
+#### Key Configuration Registers
+
+| Register | Offset | Purpose | Access Type |
+|----------|---------|---------|-------------|
+| Vendor/Device ID | 0x00-0x03 | Device identification | Read-only |
+| Command | 0x04-0x05 | Device control | Read/Write |
+| Status | 0x06-0x07 | Device status | Read-only |
+| BAR[0-5] | 0x10-0x24 | Memory/IO space mapping | Read/Write |
+| Interrupt | 0x3C-0x3F | Interrupt configuration | Read/Write |
+
+2. **AHCI Port Configuration**
+   - Port register initialization
+   - Command list and FIS base address setup
+   - Interrupt handling implementation
+   - Device presence verification
+
+3. **DMA Engine Setup**
+   - Command list structure initialization
+   - PRD (Physical Region Descriptor) table configuration
+   - Memory-mapped I/O optimization
+
+## Protocol Analysis
+
+### Link Training and State Management (LTSSM)
+
+The PCIe link establishment process involves multiple states:
+
+![alt](/images/blog/LTSSM.png)
+*Figure 5: Link Training and State Management flow*
+
+| State | Description | Key Operations |
+|-------|-------------|----------------|
+| Detection | Initial device presence detection | Electrical idle detection |
+| Polling | Training sequence exchange | Symbol lock establishment |
+| Configuration | Link width/speed negotiation | Capability exchange |
+| L0 | Normal operation state | Active data transfer |
+| Recovery | Link retraining/power state transition | Link maintenance |
+
+### Packet Transfer Protocol
+
+Data transmission utilizes Transaction Layer Packets (TLP) and Data Link Layer Packets (DLLP):
+
+![alt](/images/blog/PCIePacketTrans.png)
+*Figure 6: PCIe packet transfer protocol*
+
+## Performance Optimization
+
+### Key Metrics
+- Reduced latency through optimized interrupt handling
+- Improved throughput with efficient DMA transfers
+- Enhanced reliability through robust error handling
+
+### Benchmark Results
+[Consider adding performance graphs/charts here]
+
+## Technical Challenges and Solutions
+
+1. **Interrupt Handling**
+   - Challenge: Legacy interrupt limitations
+   - Solution: Implemented custom interrupt coalescing
+
+2. **DMA Performance**
+   - Challenge: Memory alignment issues
+   - Solution: Implemented aligned buffer management
+
+3. **Error Recovery**
+   - Challenge: Link state recovery
+   - Solution: Developed robust recovery mechanisms
+
+## Conclusion
+
+This project successfully delivered a high-performance PCIe AHCI device driver, enabling efficient operation of hybrid storage systems. The implementation provides a foundation for future storage system optimizations.

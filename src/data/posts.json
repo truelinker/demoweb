@@ -1,0 +1,402 @@
+[
+  {
+    "id": "d7add717-4e11-4f28-ac4f-3b85d9477663",
+    "slug": "Neonsimd",
+    "title": "Optimizing DPD Algorithm with ARM NEON SIMD",
+    "date": "2024-04-29",
+    "excerpt": "A deep dive into optimizing Digital Predistortion algorithm using ARM Cortex-A's NEON SIMD capabilities",
+    "content": "\r\n\r\n## Project Overview\r\n\r\nThis project focused on significantly improving the performance of Digital Predistortion (DPD) algorithm implementation through ARM NEON SIMD optimization. The optimization resulted in substantial performance gains by leveraging parallel processing capabilities of ARM architecture.\r\n\r\n## Technical Background\r\n\r\n### Digital Predistortion (DPD)\r\n\r\nDigital Predistortion is a crucial technique in modern wireless communication systems that compensates for power amplifier (PA) nonlinearities. The process works by:\r\n\r\n1. **Pre-analyzing** the PA's nonlinear characteristics\r\n2. **Applying** inverse distortion to the input signal\r\n3. **Achieving** linear output after PA processing\r\n\r\n![dpd](/images/blog/dpd.png)\r\n*Figure 1: Digital Predistortion working principle showing signal transformation stages*\r\n\r\n### ARM NEON Architecture\r\n\r\nNEON is ARM's advanced SIMD (Single Instruction Multiple Data) architecture extension, designed for high-performance computing applications. Key features include:\r\n\r\n- 32 dedicated 128-bit SIMD registers\r\n- Parallel processing capabilities\r\n- Support for both integer and floating-point operations\r\n\r\n![neonsimd](/images/blog/neonsimd.png)\r\n*Figure 2: NEON SIMD parallel processing visualization*\r\n\r\n## Optimization Strategy\r\n\r\n### 1. Memory Alignment and Data Structure Optimization\r\n\r\nTo maximize NEON register utilization, careful attention was paid to data alignment and structure:\r\n\r\n- **Memory Alignment**: Ensured 128-bit alignment for optimal NEON register loading\r\n- **Complex Data Handling**: Separated real and imaginary components for efficient SIMD processing\r\n- **Contiguous Memory Layout**: Optimized data placement for vectorized operations\r\n\r\n![dividrealandimage](/images/blog/dividrealandimage.png)\r\n*Figure 3: Complex data separation and alignment strategy*\r\n\r\n### 2. Advanced Loop Optimization\r\n\r\nImplemented sophisticated loop optimization techniques:\r\n\r\n- **Loop Unrolling**: Reduced branch predictions and improved instruction pipeline efficiency\r\n- **Loop Unwinding**: Maximized register utilization and reduced memory access overhead\r\n- **Register Allocation**: Optimized temporary result storage in NEON registers\r\n\r\n![unrollingandunwinding](/images/blog/unrollingandunwinding.png)\r\n*Figure 4: Loop unrolling and unwinding implementation*\r\n\r\n### 3. Matrix Operation Enhancement\r\n\r\nDeveloped an optimized matrix multiplication approach using 4x4 submatrices:\r\n\r\n- **SIMD Parallelization**: Processed multiple elements simultaneously\r\n\r\n![4_4submatrix](/images/blog/4_4submatrix.png)\r\n*Figure 5: 4x4 submatrix multiplication optimization*\r\n\r\n## Performance Results\r\n\r\nThe optimization efforts resulted in:\r\n- Significant reduction in processing time\r\n- Improved throughput for real-time applications\r\n- Better resource utilization\r\n\r\n![neon_optimization](/images/blog/neon_optimization.png)\r\n*Figure 6: Performance results showing the improvement in processing time and throughput*\r\n",
+    "category": "career",
+    "tags": [
+      "ARM",
+      "NEON SIMD",
+      "Performance Optimization",
+      "Digital Signal Processing"
+    ],
+    "series": [
+      "Performance Optimization"
+    ]
+  },
+  {
+    "id": "22c27eb1-79e9-4286-8d22-b62fe00baccc",
+    "slug": "FlashWriter",
+    "title": "Flash Writer Implementation for Embedded Systems",
+    "date": "2024-04-29",
+    "excerpt": "Deep dive into the implementation of a Flash Writer program for embedded systems, focusing on secure boot sequence and memory management",
+    "content": "\r\n## Project Overview\r\n\r\nDeveloped a sophisticated Flash Writer application for initializing flash memory in new embedded systems. This critical tool enables the programming of secondary boot loaders (SBL) and establishes the foundation for multi-core boot sequences.\r\n\r\n## Technical Architecture\r\n\r\n### Boot Sequence Architecture\r\nThe boot sequence follows a carefully orchestrated process, starting from ROM and progressing through multiple stages:\r\n\r\n![boot-sequence](/images/blog/boot-sequence.png)\r\n*Figure 1: Complete boot sequence flow showing ROM, Flash Writer, and SBL stages*\r\n\r\n### Flash Writer Operation Flow\r\n\r\n#### Initial Download Phase\r\n![download-flashwriter](/images/blog/download-flashwriter.png)\r\n*Figure 2: Flash Writer download and initialization sequence*\r\n\r\n#### SBL Programming Phase\r\n![download-sbl](/images/blog/download-sbl.png)\r\n*Figure 3: Secondary Boot Loader download and programming sequence*\r\n\r\n#### RTOS Loading Phase\r\n![download-rtos](/images/blog/download-rtos.png)\r\n*Figure 4: RTOS/Bare Metal application loading process*\r\n\r\n\r\n### How to implment the flash writer\r\n- Step 1: Active SPI HW block and Read SFDP(Serial Flash Discoverable - Parameter) on the flash memory\r\n- Step 2: Allocate Input/Output Queue memory for Serial IO communication, and init UART port.\r\n- Step 3: Init the UART port such as baud rate, pins enable and register the Input/Output queue with TX/RX DMA channels.\r\n- Step 4: Open the UART port and waiting a message from an host PC. \r\n- Step 5: When a message is received, it decodes the command ID and processes it according to the command ID.\r\n- Step 6: All messages are transfered from the PC successfully, then try to load the SBL written on the flash memory into a RAM memory.\r\n- Step 7: Start the SBL by call from the entry point of the SBL loaded into the RAM memory.\r\n\r\n## Conclusion\r\n\r\nThe Flash Writer serves as a critical initial programming tool specifically designed for downloading and writing the Secondary Boot Loader (SBL) into blank flash memory via UART communication. Its role is temporary but essential in the boot sequence initialization.\r\n\r\n### Primary Functions\r\n![flash-writer-role](/images/blog/flash-writer-role.png)\r\n*Figure: Flash Writer's role in boot sequence initialization*\r\n",
+    "category": "career",
+    "tags": [
+      "Flash Memory",
+      "Bootloader",
+      "Embedded Systems",
+      "RTOS",
+      "System Programming"
+    ],
+    "series": [
+      "Embedded Systems",
+      "Boot Systems"
+    ]
+  },
+  {
+    "id": "65682bd3-62b1-4944-8c0e-2023ee829e58",
+    "slug": "FileSystem",
+    "title": "Flash FileSystem",
+    "date": "2024-04-29",
+    "excerpt": "Implemented a File System on QSPI NOR flash",
+    "content": "\r\n\r\n## Implmented a file system on a QSPI NOR Flash.\r\n\r\nAzura RTOS(aka, ThreadX) provides FileX/LevelX  to help develop FAT16/32 file systems on flash memory. I used this API to implement a file system for firmware running on Azura RTOS(aka, ThreadX) over QSPI NOR flash memory.\r\n\r\n### Background knowledges\r\n1. FileX : \r\n   FAT-compatible file system libraries.\r\n2. LevelX : Handle NAND or NOR flash memories managment for wear-leveling to increase the memory lifetime and support multiplie instances of NAND and/or NOR pairs.\r\n3. NOR Flash memory : While NAND flash reads/writes data in pages, NOR flash reads and writes data in bytes. However, erasing is done on a sector-by-sector basis. Just like NAND flash, NOR must also erase data before writing it. Lastly, NOR Flash memory generally has a lower bit error rate than NAND flash, so Error-Correcting Code (ECC) is not required.\r\n![nor_flash_write_read](/images/blog/nor_flash_write_read.png)\r\n![nand_flash_write_read](/images/blog/nand_flash_write_read.png)\r\n4. QSPI : The NOR flash memory is communicated through QSPI with flash command set. QSPI inherits the basic principles of SPI - synchoronous communication with a master-slave architecture, but it boots the data transfer speed by using four data lines(quad mode) instead of SPI's single line. This allows transferring four bits of data simulataneously. The below is the flash memory common command set. By using the command, FW can read the characteristic of the flash memory and configure it.\r\n![flash_memory_command_set](/images/blog/flash_memory_command_set.png)\r\n\r\n### How to implment the file system\r\n- Step 1: Active SPI HW block and Read SFDP(Serial Flash Discoverable - Parameter)\r\n- Step 2: Enable QSPI mode by Sending Write Status Register command on the flash memory.\r\n- Step 3: Initialize timer for FileX\r\nStep 4: Erase NOR flash and connect it with the flash device driver (read/write)\r\n- Step 5: Partition and format the flash memory with the desired size.\r\n- Step 6: Open the formated partition.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "73d5af6e-6f9f-4fb9-88fa-1d843642c6d8",
+    "slug": "Neonsimd",
+    "title": "Optimizing DPD Algorithm with ARM NEON SIMD",
+    "date": "2024-04-29",
+    "excerpt": "A deep dive into optimizing Digital Predistortion algorithm using ARM Cortex-A's NEON SIMD capabilities",
+    "content": "\r\n\r\n## Project Overview\r\n\r\nThis project focused on significantly improving the performance of Digital Predistortion (DPD) algorithm implementation through ARM NEON SIMD optimization. The optimization resulted in substantial performance gains by leveraging parallel processing capabilities of ARM architecture.\r\n\r\n## Technical Background\r\n\r\n### Digital Predistortion (DPD)\r\n\r\nDigital Predistortion is a crucial technique in modern wireless communication systems that compensates for power amplifier (PA) nonlinearities. The process works by:\r\n\r\n1. **Pre-analyzing** the PA's nonlinear characteristics\r\n2. **Applying** inverse distortion to the input signal\r\n3. **Achieving** linear output after PA processing\r\n\r\n![dpd](/images/blog/dpd.png)\r\n*Figure 1: Digital Predistortion working principle showing signal transformation stages*\r\n\r\n### ARM NEON Architecture\r\n\r\nNEON is ARM's advanced SIMD (Single Instruction Multiple Data) architecture extension, designed for high-performance computing applications. Key features include:\r\n\r\n- 32 dedicated 128-bit SIMD registers\r\n- Parallel processing capabilities\r\n- Support for both integer and floating-point operations\r\n\r\n![neonsimd](/images/blog/neonsimd.png)\r\n*Figure 2: NEON SIMD parallel processing visualization*\r\n\r\n## Optimization Strategy\r\n\r\n### 1. Memory Alignment and Data Structure Optimization\r\n\r\nTo maximize NEON register utilization, careful attention was paid to data alignment and structure:\r\n\r\n- **Memory Alignment**: Ensured 128-bit alignment for optimal NEON register loading\r\n- **Complex Data Handling**: Separated real and imaginary components for efficient SIMD processing\r\n- **Contiguous Memory Layout**: Optimized data placement for vectorized operations\r\n\r\n![dividrealandimage](/images/blog/dividrealandimage.png)\r\n*Figure 3: Complex data separation and alignment strategy*\r\n\r\n### 2. Advanced Loop Optimization\r\n\r\nImplemented sophisticated loop optimization techniques:\r\n\r\n- **Loop Unrolling**: Reduced branch predictions and improved instruction pipeline efficiency\r\n- **Loop Unwinding**: Maximized register utilization and reduced memory access overhead\r\n- **Register Allocation**: Optimized temporary result storage in NEON registers\r\n\r\n![unrollingandunwinding](/images/blog/unrollingandunwinding.png)\r\n*Figure 4: Loop unrolling and unwinding implementation*\r\n\r\n### 3. Matrix Operation Enhancement\r\n\r\nDeveloped an optimized matrix multiplication approach using 4x4 submatrices:\r\n\r\n- **SIMD Parallelization**: Processed multiple elements simultaneously\r\n\r\n![4_4submatrix](/images/blog/4_4submatrix.png)\r\n*Figure 5: 4x4 submatrix multiplication optimization*\r\n\r\n## Performance Results\r\n\r\nThe optimization efforts resulted in:\r\n- Significant reduction in processing time\r\n- Improved throughput for real-time applications\r\n- Better resource utilization\r\n\r\n![neon_optimization](/images/blog/neon_optimization.png)\r\n*Figure 6: Performance results showing the improvement in processing time and throughput*\r\n",
+    "category": "career",
+    "tags": [
+      "ARM",
+      "NEON SIMD",
+      "Performance Optimization",
+      "Digital Signal Processing"
+    ],
+    "series": [
+      "Performance Optimization"
+    ]
+  },
+  {
+    "id": "4cea9df0-0dd9-4a5a-85fc-8d9cfc9603be",
+    "slug": "FlashWriter",
+    "title": "Flash Writer Implementation for Embedded Systems",
+    "date": "2024-04-29",
+    "excerpt": "Deep dive into the implementation of a Flash Writer program for embedded systems, focusing on secure boot sequence and memory management",
+    "content": "\r\n## Project Overview\r\n\r\nDeveloped a sophisticated Flash Writer application for initializing flash memory in new embedded systems. This critical tool enables the programming of secondary boot loaders (SBL) and establishes the foundation for multi-core boot sequences.\r\n\r\n## Technical Architecture\r\n\r\n### Boot Sequence Architecture\r\nThe boot sequence follows a carefully orchestrated process, starting from ROM and progressing through multiple stages:\r\n\r\n![boot-sequence](/images/blog/boot-sequence.png)\r\n*Figure 1: Complete boot sequence flow showing ROM, Flash Writer, and SBL stages*\r\n\r\n### Flash Writer Operation Flow\r\n\r\n#### Initial Download Phase\r\n![download-flashwriter](/images/blog/download-flashwriter.png)\r\n*Figure 2: Flash Writer download and initialization sequence*\r\n\r\n#### SBL Programming Phase\r\n![download-sbl](/images/blog/download-sbl.png)\r\n*Figure 3: Secondary Boot Loader download and programming sequence*\r\n\r\n#### RTOS Loading Phase\r\n![download-rtos](/images/blog/download-rtos.png)\r\n*Figure 4: RTOS/Bare Metal application loading process*\r\n\r\n\r\n### How to implment the flash writer\r\n- Step 1: Active SPI HW block and Read SFDP(Serial Flash Discoverable - Parameter) on the flash memory\r\n- Step 2: Allocate Input/Output Queue memory for Serial IO communication, and init UART port.\r\n- Step 3: Init the UART port such as baud rate, pins enable and register the Input/Output queue with TX/RX DMA channels.\r\n- Step 4: Open the UART port and waiting a message from an host PC. \r\n- Step 5: When a message is received, it decodes the command ID and processes it according to the command ID.\r\n- Step 6: All messages are transfered from the PC successfully, then try to load the SBL written on the flash memory into a RAM memory.\r\n- Step 7: Start the SBL by call from the entry point of the SBL loaded into the RAM memory.\r\n\r\n## Conclusion\r\n\r\nThe Flash Writer serves as a critical initial programming tool specifically designed for downloading and writing the Secondary Boot Loader (SBL) into blank flash memory via UART communication. Its role is temporary but essential in the boot sequence initialization.\r\n\r\n### Primary Functions\r\n![flash-writer-role](/images/blog/flash-writer-role.png)\r\n*Figure: Flash Writer's role in boot sequence initialization*\r\n",
+    "category": "career",
+    "tags": [
+      "Flash Memory",
+      "Bootloader",
+      "Embedded Systems",
+      "RTOS",
+      "System Programming"
+    ],
+    "series": [
+      "Embedded Systems",
+      "Boot Systems"
+    ]
+  },
+  {
+    "id": "157f6410-3fd9-4678-b78b-965fbc488469",
+    "slug": "FileSystem",
+    "title": "Flash FileSystem",
+    "date": "2024-04-29",
+    "excerpt": "Implemented a File System on QSPI NOR flash",
+    "content": "\r\n\r\n## Implmented a file system on a QSPI NOR Flash.\r\n\r\nAzura RTOS(aka, ThreadX) provides FileX/LevelX  to help develop FAT16/32 file systems on flash memory. I used this API to implement a file system for firmware running on Azura RTOS(aka, ThreadX) over QSPI NOR flash memory.\r\n\r\n### Background knowledges\r\n1. FileX : \r\n   FAT-compatible file system libraries.\r\n2. LevelX : Handle NAND or NOR flash memories managment for wear-leveling to increase the memory lifetime and support multiplie instances of NAND and/or NOR pairs.\r\n3. NOR Flash memory : While NAND flash reads/writes data in pages, NOR flash reads and writes data in bytes. However, erasing is done on a sector-by-sector basis. Just like NAND flash, NOR must also erase data before writing it. Lastly, NOR Flash memory generally has a lower bit error rate than NAND flash, so Error-Correcting Code (ECC) is not required.\r\n![nor_flash_write_read](/images/blog/nor_flash_write_read.png)\r\n![nand_flash_write_read](/images/blog/nand_flash_write_read.png)\r\n4. QSPI : The NOR flash memory is communicated through QSPI with flash command set. QSPI inherits the basic principles of SPI - synchoronous communication with a master-slave architecture, but it boots the data transfer speed by using four data lines(quad mode) instead of SPI's single line. This allows transferring four bits of data simulataneously. The below is the flash memory common command set. By using the command, FW can read the characteristic of the flash memory and configure it.\r\n![flash_memory_command_set](/images/blog/flash_memory_command_set.png)\r\n\r\n### How to implment the file system\r\n- Step 1: Active SPI HW block and Read SFDP(Serial Flash Discoverable - Parameter)\r\n- Step 2: Enable QSPI mode by Sending Write Status Register command on the flash memory.\r\n- Step 3: Initialize timer for FileX\r\nStep 4: Erase NOR flash and connect it with the flash device driver (read/write)\r\n- Step 5: Partition and format the flash memory with the desired size.\r\n- Step 6: Open the formated partition.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": 3,
+    "slug": "tailwind-css-tips-and-tricks",
+    "title": "Tailwind CSS Tips and Tricks",
+    "date": "2023-07-22",
+    "excerpt": "Useful tips and tricks for using Tailwind CSS in your Next.js projects.",
+    "content": "# Tailwind CSS Tips and Tricks\n\nTailwind CSS is a utility-first CSS framework that can be composed to build any design, directly in your markup. It provides low-level utility classes that let you build completely custom designs without ever leaving your HTML.\n\n## Tip #1: Use Group-Hover for Complex Interactions\n\nThe `group` and `group-hover` classes are incredibly useful for creating hover effects that affect multiple elements.\n\n## Tip #2: Create Custom Utilities with @apply\n\nIf you find yourself repeatedly using the same combination of utilities, consider extracting them into custom utilities using the `@apply` directive in your CSS.\n\n## Tip #3: Optimize for Production\n\nTailwind can generate thousands of utility classes, many of which you might not use. Make sure you're purging unused styles in production for optimal performance."
+  },
+  {
+    "id": 2,
+    "slug": "dynamic-routing-in-nextjs",
+    "title": "Dynamic Routing in Next.js",
+    "date": "2023-06-10",
+    "excerpt": "Explore how to implement dynamic routes in your Next.js application.",
+    "content": "# Dynamic Routing in Next.js\n\nNext.js has a file-system based router built on the App Router. When a file is added to the `app` directory, it's automatically available as a route. The router uses a component hierarchy known as slots to compose complex UI.\n\nOne of the most powerful features of Next.js is dynamic routing. This allows you to create pages that can match a parameter, such as a blog post ID or a product slug.\n\nIn the App Router, you can define dynamic segments by wrapping a folder name in square brackets, for example: `[slug]`. This dynamic segment is then passed as a prop to the page component."
+  },
+  {
+    "id": 1,
+    "slug": "getting-started-with-nextjs",
+    "title": "Getting Started with Next.js",
+    "date": "2023-05-15",
+    "excerpt": "Learn the basics of Next.js and how to build your first application.",
+    "content": "# Getting Started with Next.js\n\nNext.js is a React framework that gives you building blocks to create web applications. By framework, we mean Next.js handles the tooling and configuration needed for React, and provides additional structure, features, and optimizations for your application.\n\nYou can use React to build your UI, then incrementally adopt Next.js features to solve common application requirements such as routing, data fetching, integrations - all while improving the developer and end-user experience.\n\nWhether you're an individual developer or part of a larger team, you can leverage React and Next.js to build fully interactive, highly dynamic, and performant web applications."
+  },
+  {
+    "id": "b88c51c7-780c-409d-9887-3fc4d0510817",
+    "slug": "vocaMaster",
+    "title": "Word Memorization App",
+    "date": "2022-08-30",
+    "excerpt": " When preparing for the GRE and TOEFL English tests, the method of memorizing English words used was developed as an Android app after the test was over.",
+    "content": "\r\n### [Voca Master](https://github.com/truelinker/vocaMaster)\r\nThis is an Android application that I developed in 2011. This is an application that helps you memorize new English words.\r\n> Github : https://github.com/truelinker/vocaMaster\r\n\r\n[![VocaMasterDemo](/images/blog/VocaMasterDemo.jpg)](https://www.youtube.com/watch?v=5WGz2HGq2gY \"Demo Video\")\r\n\r\n### Click the video demo above. ☝️\r\n\r\n### Abstraction\r\nMobile devices are useful in many respects such as education, entertainment, and so on, because people bring their mobile gadgets all the time. Therefore, apps running on the devices are exposed to users anytime and anywhere.\r\nFor the summer personal project, I‟ve developed an education app for the Android platform; the app is for helping people to memorize vocabularies with spending remnant time such as during waiting a bus, waiting a meal, and so on.\r\n### Introduction\r\nThe Vocabulary Master has the same concept with flash card to memorize new words. However, it has more features like managing newly memorized word to be remained in users‟ brain, recording when and how words are memorized, Furthermore, it can access an internet-based dictionary and the Google image service to help people easily remind word with the image and the extra meaning of the words.\r\n\r\n### Features\r\n\r\n#### Overview of the forgetting curve hypothesizes.\r\nThe app uses the concept of the forgetting curve of Hermann Ebbinghaus.\r\nThe forgetting curve hypothesizes the decline of memory retention in time. A related concept is the strength of memory that refers to the durability that memory traces in the brain. The stronger the memory, the longer period of time that a person is able to recall it. A typical graph of the forgetting curve purports to show that humans tend to halve their memory of newly learned knowledge in a matter of days or weeks unless they consciously review the learned material. This conclusion is not currently supported by evidence since the only studies done by Ebbinghaus are on himself. This does not meet the standards for scientific research.[1]\r\n\r\nThe app uses an algorithm of the forgetting curve and shows it through a list view indicating when and what words should be re-memorized again. By doing so, these words move from short-term memory to long-term memory according to the forgetting curve hypothesis.\r\n\r\n| ![forgettenCurve](/images/blog/forgettenCurve.jpg) | ![memorizedSteps](/images/blog/memorizedSteps.jpg) |\r\n| ----------- | ----------- |\r\n\r\n\r\nAs you see [Fig.2], if a user succeeds to memorize a word then it goes down to the next step. And in the right size of each step indicates the day of elapsed and period. Within the period, a user should memorize the words in the steps.\r\n\r\n#### Overlook of word card screen.\r\n\r\nIn the screen [Fig.3], it composes of 5 parts.\r\nIn the top of the screen, there are three things are indicated; “Num of Wrong”, “Num of Current”, and “Elapsed time”. The “Num of Wrong” indicates how many times the user fail to remind the meaning of the word. And “Num of Current” is how many times a user succeed to correct meaning of the word. And the last “Elapsed time” is that how long has been elapsed since the user memorized the word.\r\nThe next section is meaning and the blue box below the meaning section is for extra meaning section. If you touch the box, then next screen shows to add more extra meaning if you want. [Fig.4] Insert extra meaning\r\n\r\n| ![FlashCard](/images/blog/FlashCard.jpg) | ![InsertExtraMean](/images/blog/InsertExtraMean.jpg) |\r\n| ----------- | ----------- |\r\n\r\n#### Multiple-choice questions\r\nTo enhance memorize vocabularies, I added multiple-choice questions features like [Fig.5]\r\n\r\nThe screen shows if you consequently make wrong answers few times, then the screen shows up. By doing so, users try to memorize words repeatedly without feel boring, because they may experience different types of questions with the same words.\r\n\r\n#### Setting\r\nUsers are able to customize the design of screen by changing configuration through a setting screen [Fig.6]\r\n\r\n| ![multiQuestion](/images/blog/multiQuestion.jpg) |![SettingScreen](/images/blog/SettingScreen.jpg) |\r\n| ----------- | ----------- |\r\n\r\nAs you see in the [Fig.6], you can change a configuration of the app such as whether repeating the word,\r\nenable or disable multiple-choice quiz, timer, whether words show randomly or not, and size, color of the letter of the app.\r\n\r\n#### Add and Delete words\r\nFor user convenience, the app provides two ways to add and delete word or word lists.\r\n\r\n![AddDelWord](/images/blog/AddDelWord.jpg)\r\n\r\nUsers are able to add new word lists with the process described above [Fig.7]. However, users must write\r\ntheir own word lists with format “cvs” which is a using „,” to separate word and meaning using Excel or any editor. Users are simply add a word individually without adding a new word list [Fig.8]",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "0eaa67f7-4658-4cd5-8437-464014e09f6c",
+    "slug": "WebRTC",
+    "title": "Web RTC",
+    "date": "2022-08-30",
+    "excerpt": " Now, it is made to develop easily p2p video communication in browser through java script api. What I did as a personal project was to develop an android application by changing the web rtc open source. And communication is implemented between the android native application and the web application developed using the web rtc javascript api.",
+    "content": "\r\n### [Web RTC](https://github.com/truelinker/webrtc_p2pvideo)\r\nUsing the WebRTC open source, I'd modified to implment my own p2p video chat application between the android native app and chrom web app.\r\n> Github : https://github.com/truelinker/webrtc_p2pvideo\r\n\r\n## How it works\r\n1. Two peers (Android application and web application) connect to a room created by a server, I used a Javascript web server using node.js and exchange information such as each other's network information (ip, port).\r\n2.  When starting a video call, the call starts by exchanging each other's media information based on the given network information.\r\n![howWebRTCworks](/images/blog/howWebRTCworks.jpg)\r\n---\r\nThe following video shows the demo. \r\n![WebRTCDemo2](/images/blog/WebRTCDemo2.jpg)\r\n[![webrtc_demo](/images/blog/webrtc_demo.jpg)](https://www.youtube.com/watch?v=PuphKiK7xmE \"Demo Video\")\r\n### Click the video demo above. ☝️\r\n\r\n",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "d0061107-641a-4544-a4cb-7190ced8fd02",
+    "slug": "LogParser",
+    "title": "Log Parser",
+    "date": "2022-08-30",
+    "excerpt": "In order to efficiently analyze the large-sized debug log in a short time, I made a program to parse it through the python script language.",
+    "content": "\r\n### [Log Parser](https://github.com/truelinker/TraceParser)  In order to solve numerous bugs and problems, I need to look at log data generated by many drives. However, sometimes the log amount exceeds several hundred megabytes. In order to save time and effort, I created a parser python script, which is helping me to solve more problems in a timely manner while reducing time and effort.\r\n\r\n---\r\n\r\n### How it works\r\n\r\n[1] Enter the path of the file where the Enum values are defined.\r\nIn the code used as an example, two enum define hpp files are read.\r\n| ![enumDefine0](/images/blog/enumDefine0.jpg) |\r\n| ----------- | \r\n| ![enumDefine1](/images/blog/enumDefine1.jpg) |\r\n\r\n[2] Put the search list I want to find in the log file into a profile file.\r\n![profileExample](/images/blog/profileExample.jpg)\r\n\r\n[3] Specifies the log file location to be analyzed.\r\n\r\n\r\n![DiagramParseScript](/images/blog/DiagramParseScript.png)\r\n\r\n### Result\r\n\r\nThe log file in the example below and the file filtered by the parser program can be checked through the link below.\r\nhttps://github.com/truelinker/TraceParser/blob/main/LogExample.txt\r\nhttps://github.com/truelinker/TraceParser/blob/main/LogExample.txtFilterEnumID.txt\r\nAnd you can see in the picture below that a numeric enum value is converted to an enum string.\r\n![EnumString](/images/blog/EnumString.png)",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "e9ce3009-71af-484b-b592-3350d1784717",
+    "slug": "smr",
+    "title": "SMR",
+    "date": "2022-08-30",
+    "excerpt": "Development of SMR HDD firmware that only uses sequential read and write",
+    "content": "\r\n\r\n### Participated in the drive managed SMR HDD development.\r\n\r\nBecause the size of Read Header in HDD is smaller than Write Header, it is possible to write more densely when writing. This is the basic concept of SMR (Shingled Magnetic Recording). There are two main types of SMR HDDs: Host Managed SMR and Drive Managed SMR. The reason for dividing into two is that for SMR drives capable of only sequential write/read, the location of LBA and actual physical location is different each time it is written, so an indirection mapping table is needed for this. If this mapping table is managed by the host, it is a host managed SMR drive, and if managed by the drive, it becomes a drive managed SMR drive. I joined SMR development late because of other projects I participated, and focused on fixing bugs that occurred during validation while most of the design and development were completed.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "35350b65-b029-41e3-a545-a89446f521eb",
+    "slug": "secure-drive",
+    "title": "Secure Drive",
+    "date": "2022-08-30",
+    "excerpt": "It is a Storage drive(HDD, SSD), they are enabled Security protocols such as TCG, Sanitize, ATA Security, and security features such as Secure Boot.",
+    "content": "\r\n\r\n### Now I'm working at Western Digital as a firmware developer on a team that provides a common security engine for SSDs and HDDs. I am in charge of developing Security APIs so that the security engine provided by the team can be used according to the HDD characteristics.\r\n1. TCG protocols (TCG enterprise, opal, pyrite, etc).\r\n2. Sanitize\r\n3. ATA Security\r\n---\r\n\r\n#### 1. [TCG] (https://nvmexpress.org/wp-content/uploads/TCGandNVMe_Joint_White_Paper-TCG_Storage_Opal_and_NVMe_FINAL.pdf)  provides that data stored on HDDs or SSDs is self-encrypted under policy-based access control. The following link explains the TCG storage specification more easily. https://www.kingston.com/en/community/articledetail/articleid/51969\r\n\r\nThe following figure shows how reads/writes are access-controlled and encrypted in the TCG configuration store.\r\n![TCGHowitWorks](/images/blog/TCGHowitWorks.png)\r\n\r\n---\r\n### 2. [Sanitize] This function erases all data on the media (disk media, flash memory, DRAM memory) in the storage device. The Self-Encryption Drive encrypts data first, and then overwrites all data with a specific pattern or garbage data.\r\n---\r\n### 3. [ATA Security] This is a basic security feature provided by storage drives using SATA interface.\r\nThe following ATA security access controls are provided, which allow users to way to protect their data.\r\n\r\n![ATASecurityStateDiagram](/images/blog/ATASecurityStateDiagram.png)\r\n",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "01e37634-2fbc-4c58-8b9e-c0fd8628c1cc",
+    "slug": "SIO",
+    "title": "Serial communication",
+    "date": "2022-08-30",
+    "excerpt": "Adding of half-duplex SIO communication along with the existing full-duplex",
+    "content": "\r\n\r\n### I developed a serial communication protocol. As for the background, as the tester that uses only a single serial bus was newly introduced, I had to change the firmware to use it with the tester that uses the existing dual serial bus, and I was in charge of developing the fimrware.\r\n\r\nThe purpose of this project is to change the firmware to work with testers with different serial communication methods on the same firmware. In the existing method, two serial bus lines are divided into TX and RX, and there is no collision between TX and RX. However, in communication using one serial bus line, collision between TX and RX may occur. We had to design the protocol so that collisions do not occur as much as possible, and when an collision occurs, error handling make it return to normal to continue communicate.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "88b546ff-1218-492b-8473-b1f9b9c1e3a4",
+    "slug": "PCIeDeviceDriver",
+    "title": "PCIe AHCI Device Driver Development",
+    "date": "2022-08-30",
+    "excerpt": "Deep dive into PCIe AHCI Device Driver development for Hybrid HDD systems, focusing on performance optimization and hardware integration.",
+    "content": "\r\n\r\n## Project Overview\r\n\r\nLed the development of a PCIe AHCI device driver for a Solid State Hybrid Drive (SSHD) system. This innovative storage solution combines HDD capacity with SSD performance by utilizing a PCIe-connected SSD cache for frequently accessed data.\r\n\r\n## Technical Architecture\r\n\r\n### System Overview\r\nThe SSHD architecture integrates traditional HDD storage with a PCIe-connected SSD cache:\r\n\r\n![sshd-architecture](/images/blog/sshd-architecture.png)\r\n*Figure 1: High-level architecture of the Hybrid Storage System*\r\n\r\n### PCIe Port Initialization Flow\r\n\r\nThe PCIe controller initialization follows a precise sequence to ensure reliable operation:\r\n\r\n![pcie_port_open_flow](/images/blog/pcie_port_open_flow.png)\r\n*Figure 2: Detailed PCIe port initialization sequence*\r\n\r\n## Implementation Details\r\n\r\n### Driver Architecture\r\nThe PCIe AHCI driver implementation was structured around three key components:\r\n\r\n![PCIeOverall](/images/blog/PCIeOverall.png)\r\n\r\n*Figure 3: PCIe AHCI Driver Architecture*\r\n\r\n### Memory Mapping Strategy\r\n\r\nImplemented efficient BAR (Base Address Register) mapping for optimal performance:\r\n\r\n![BarMap](/images/blog/BarMap.png)\r\n*Figure 4: Base Address Register mapping architecture*\r\n\r\n### Key Implementation Steps\r\n\r\n1. **PCIe Configuration Space Management**\r\n   #### Configuration Space Layout\r\n![pcie-config-space](/images/blog/pcie-config-space.png)\r\n*Figure: PCIe Configuration Space Structure*\r\n#### Key Configuration Registers\r\n\r\n| Register | Offset | Purpose | Access Type |\r\n|----------|---------|---------|-------------|\r\n| Vendor/Device ID | 0x00-0x03 | Device identification | Read-only |\r\n| Command | 0x04-0x05 | Device control | Read/Write |\r\n| Status | 0x06-0x07 | Device status | Read-only |\r\n| BAR[0-5] | 0x10-0x24 | Memory/IO space mapping | Read/Write |\r\n| Interrupt | 0x3C-0x3F | Interrupt configuration | Read/Write |\r\n\r\n2. **AHCI Port Configuration**\r\n   - Port register initialization\r\n   - Command list and FIS base address setup\r\n   - Interrupt handling implementation\r\n   - Device presence verification\r\n\r\n3. **DMA Engine Setup**\r\n   - Command list structure initialization\r\n   - PRD (Physical Region Descriptor) table configuration\r\n   - Memory-mapped I/O optimization\r\n\r\n## Protocol Analysis\r\n\r\n### Link Training and State Management (LTSSM)\r\n\r\nThe PCIe link establishment process involves multiple states:\r\n\r\n![LTSSM](/images/blog/LTSSM.png)\r\n*Figure 5: Link Training and State Management flow*\r\n\r\n| State | Description | Key Operations |\r\n|-------|-------------|----------------|\r\n| Detection | Initial device presence detection | Electrical idle detection |\r\n| Polling | Training sequence exchange | Symbol lock establishment |\r\n| Configuration | Link width/speed negotiation | Capability exchange |\r\n| L0 | Normal operation state | Active data transfer |\r\n| Recovery | Link retraining/power state transition | Link maintenance |\r\n\r\n### Packet Transfer Protocol\r\n\r\nData transmission utilizes Transaction Layer Packets (TLP) and Data Link Layer Packets (DLLP):\r\n\r\n![PCIePacketTrans](/images/blog/PCIePacketTrans.png)\r\n*Figure 6: PCIe packet transfer protocol*\r\n\r\n## Performance Optimization\r\n\r\n### Key Metrics\r\n- Reduced latency through optimized interrupt handling\r\n- Improved throughput with efficient DMA transfers\r\n- Enhanced reliability through robust error handling\r\n\r\n### Benchmark Results\r\n[Consider adding performance graphs/charts here]\r\n\r\n## Technical Challenges and Solutions\r\n\r\n1. **Interrupt Handling**\r\n   - Challenge: Legacy interrupt limitations\r\n   - Solution: Implemented custom interrupt coalescing\r\n\r\n2. **DMA Performance**\r\n   - Challenge: Memory alignment issues\r\n   - Solution: Implemented aligned buffer management\r\n\r\n3. **Error Recovery**\r\n   - Challenge: Link state recovery\r\n   - Solution: Developed robust recovery mechanisms\r\n\r\n## Conclusion\r\n\r\nThis project successfully delivered a high-performance PCIe AHCI device driver, enabling efficient operation of hybrid storage systems. The implementation provides a foundation for future storage system optimizations.\r\n",
+    "category": "career",
+    "tags": [
+      "PCIe",
+      "AHCI",
+      "Device Drivers",
+      "Storage Systems",
+      "Embedded Systems"
+    ],
+    "series": [
+      "Device Driver Development"
+    ]
+  },
+  {
+    "id": "5fb67c40-5d9c-4e32-8bd0-6aebd8774928",
+    "slug": "EthernetSwitch",
+    "title": "Layer 2 switch development",
+    "date": "2022-08-30",
+    "excerpt": "I have developed a layer 2 switch in Linux. And I developed functions such as DHCP and ARP.",
+    "content": "\r\n\r\n### When I was working at Dasan Networks ( https://en.wikipedia.org/wiki/DASAN_Networks ), I developed a Layer 2 switch device based on Dasan Networks' custom Linux using Broadcom and Marvell's Layer 2 switch SoCs. In addition, I have developed DHCP and ARP and other functions.\r\n---\r\n\r\nThe following figure shows the Linux network stack of 24 port ethernet switch.\r\nLayer 2 switch SoCs provides basic functions such as RX/TX Ring Buffer and MAC address learning table as shown in the figure below. In addition, it provides additional functions at the Ethernet level such as VLAN, STP and Link Aggregation.\r\n![LinuxKernelNetworkStack](/images/blog/LinuxKernelNetworkStack.png)\r\n\r\n---\r\n\r\nAlthough it is a Layer 2 switch network device, additional functions can be implemented by adding an application daemon running on the application layer as shown in the figure below.\r\n![dhcp](/images/blog/dhcp.png)\r\n\r\n---\r\n\r\nARP is handled directly by the Linux kernel, not by the application.\r\n![arp_1](/images/blog/arp_1.png)\r\n![arp_2](/images/blog/arp_2.png)\r\n\r\n",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "b54f3350-bc7d-43f6-b64c-f818fca704a1",
+    "slug": "vocaMaster",
+    "title": "Word Memorization App",
+    "date": "2022-08-30",
+    "excerpt": " When preparing for the GRE and TOEFL English tests, the method of memorizing English words used was developed as an Android app after the test was over.",
+    "content": "\r\n### [Voca Master](https://github.com/truelinker/vocaMaster)\r\nThis is an Android application that I developed in 2011. This is an application that helps you memorize new English words.\r\n> Github : https://github.com/truelinker/vocaMaster\r\n\r\n[![VocaMasterDemo](/images/blog/VocaMasterDemo.jpg)](https://www.youtube.com/watch?v=5WGz2HGq2gY \"Demo Video\")\r\n\r\n### Click the video demo above. ☝️\r\n\r\n### Abstraction\r\nMobile devices are useful in many respects such as education, entertainment, and so on, because people bring their mobile gadgets all the time. Therefore, apps running on the devices are exposed to users anytime and anywhere.\r\nFor the summer personal project, I‟ve developed an education app for the Android platform; the app is for helping people to memorize vocabularies with spending remnant time such as during waiting a bus, waiting a meal, and so on.\r\n### Introduction\r\nThe Vocabulary Master has the same concept with flash card to memorize new words. However, it has more features like managing newly memorized word to be remained in users‟ brain, recording when and how words are memorized, Furthermore, it can access an internet-based dictionary and the Google image service to help people easily remind word with the image and the extra meaning of the words.\r\n\r\n### Features\r\n\r\n#### Overview of the forgetting curve hypothesizes.\r\nThe app uses the concept of the forgetting curve of Hermann Ebbinghaus.\r\nThe forgetting curve hypothesizes the decline of memory retention in time. A related concept is the strength of memory that refers to the durability that memory traces in the brain. The stronger the memory, the longer period of time that a person is able to recall it. A typical graph of the forgetting curve purports to show that humans tend to halve their memory of newly learned knowledge in a matter of days or weeks unless they consciously review the learned material. This conclusion is not currently supported by evidence since the only studies done by Ebbinghaus are on himself. This does not meet the standards for scientific research.[1]\r\n\r\nThe app uses an algorithm of the forgetting curve and shows it through a list view indicating when and what words should be re-memorized again. By doing so, these words move from short-term memory to long-term memory according to the forgetting curve hypothesis.\r\n\r\n| ![forgettenCurve](/images/blog/forgettenCurve.jpg) | ![memorizedSteps](/images/blog/memorizedSteps.jpg) |\r\n| ----------- | ----------- |\r\n\r\n\r\nAs you see [Fig.2], if a user succeeds to memorize a word then it goes down to the next step. And in the right size of each step indicates the day of elapsed and period. Within the period, a user should memorize the words in the steps.\r\n\r\n#### Overlook of word card screen.\r\n\r\nIn the screen [Fig.3], it composes of 5 parts.\r\nIn the top of the screen, there are three things are indicated; “Num of Wrong”, “Num of Current”, and “Elapsed time”. The “Num of Wrong” indicates how many times the user fail to remind the meaning of the word. And “Num of Current” is how many times a user succeed to correct meaning of the word. And the last “Elapsed time” is that how long has been elapsed since the user memorized the word.\r\nThe next section is meaning and the blue box below the meaning section is for extra meaning section. If you touch the box, then next screen shows to add more extra meaning if you want. [Fig.4] Insert extra meaning\r\n\r\n| ![FlashCard](/images/blog/FlashCard.jpg) | ![InsertExtraMean](/images/blog/InsertExtraMean.jpg) |\r\n| ----------- | ----------- |\r\n\r\n#### Multiple-choice questions\r\nTo enhance memorize vocabularies, I added multiple-choice questions features like [Fig.5]\r\n\r\nThe screen shows if you consequently make wrong answers few times, then the screen shows up. By doing so, users try to memorize words repeatedly without feel boring, because they may experience different types of questions with the same words.\r\n\r\n#### Setting\r\nUsers are able to customize the design of screen by changing configuration through a setting screen [Fig.6]\r\n\r\n| ![multiQuestion](/images/blog/multiQuestion.jpg) |![SettingScreen](/images/blog/SettingScreen.jpg) |\r\n| ----------- | ----------- |\r\n\r\nAs you see in the [Fig.6], you can change a configuration of the app such as whether repeating the word,\r\nenable or disable multiple-choice quiz, timer, whether words show randomly or not, and size, color of the letter of the app.\r\n\r\n#### Add and Delete words\r\nFor user convenience, the app provides two ways to add and delete word or word lists.\r\n\r\n![AddDelWord](/images/blog/AddDelWord.jpg)\r\n\r\nUsers are able to add new word lists with the process described above [Fig.7]. However, users must write\r\ntheir own word lists with format “cvs” which is a using „,” to separate word and meaning using Excel or any editor. Users are simply add a word individually without adding a new word list [Fig.8]",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "f680c347-8962-4156-b2b5-049969c02e6c",
+    "slug": "WebRTC",
+    "title": "Web RTC",
+    "date": "2022-08-30",
+    "excerpt": " Now, it is made to develop easily p2p video communication in browser through java script api. What I did as a personal project was to develop an android application by changing the web rtc open source. And communication is implemented between the android native application and the web application developed using the web rtc javascript api.",
+    "content": "\r\n### [Web RTC](https://github.com/truelinker/webrtc_p2pvideo)\r\nUsing the WebRTC open source, I'd modified to implment my own p2p video chat application between the android native app and chrom web app.\r\n> Github : https://github.com/truelinker/webrtc_p2pvideo\r\n\r\n## How it works\r\n1. Two peers (Android application and web application) connect to a room created by a server, I used a Javascript web server using node.js and exchange information such as each other's network information (ip, port).\r\n2.  When starting a video call, the call starts by exchanging each other's media information based on the given network information.\r\n![howWebRTCworks](/images/blog/howWebRTCworks.jpg)\r\n---\r\nThe following video shows the demo. \r\n![WebRTCDemo2](/images/blog/WebRTCDemo2.jpg)\r\n[![webrtc_demo](/images/blog/webrtc_demo.jpg)](https://www.youtube.com/watch?v=PuphKiK7xmE \"Demo Video\")\r\n### Click the video demo above. ☝️\r\n\r\n",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "47581271-5d16-4466-b4bc-52bd25c2a773",
+    "slug": "LogParser",
+    "title": "Log Parser",
+    "date": "2022-08-30",
+    "excerpt": "In order to efficiently analyze the large-sized debug log in a short time, I made a program to parse it through the python script language.",
+    "content": "\r\n### [Log Parser](https://github.com/truelinker/TraceParser)  In order to solve numerous bugs and problems, I need to look at log data generated by many drives. However, sometimes the log amount exceeds several hundred megabytes. In order to save time and effort, I created a parser python script, which is helping me to solve more problems in a timely manner while reducing time and effort.\r\n\r\n---\r\n\r\n### How it works\r\n\r\n[1] Enter the path of the file where the Enum values are defined.\r\nIn the code used as an example, two enum define hpp files are read.\r\n| ![enumDefine0](/images/blog/enumDefine0.jpg) |\r\n| ----------- | \r\n| ![enumDefine1](/images/blog/enumDefine1.jpg) |\r\n\r\n[2] Put the search list I want to find in the log file into a profile file.\r\n![profileExample](/images/blog/profileExample.jpg)\r\n\r\n[3] Specifies the log file location to be analyzed.\r\n\r\n\r\n![DiagramParseScript](/images/blog/DiagramParseScript.png)\r\n\r\n### Result\r\n\r\nThe log file in the example below and the file filtered by the parser program can be checked through the link below.\r\nhttps://github.com/truelinker/TraceParser/blob/main/LogExample.txt\r\nhttps://github.com/truelinker/TraceParser/blob/main/LogExample.txtFilterEnumID.txt\r\nAnd you can see in the picture below that a numeric enum value is converted to an enum string.\r\n![EnumString](/images/blog/EnumString.png)",
+    "category": "portfolio",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "5e8beef0-42dc-4fca-87ff-f0c9606bf35b",
+    "slug": "smr",
+    "title": "SMR",
+    "date": "2022-08-30",
+    "excerpt": "Development of SMR HDD firmware that only uses sequential read and write",
+    "content": "\r\n\r\n### Participated in the drive managed SMR HDD development.\r\n\r\nBecause the size of Read Header in HDD is smaller than Write Header, it is possible to write more densely when writing. This is the basic concept of SMR (Shingled Magnetic Recording). There are two main types of SMR HDDs: Host Managed SMR and Drive Managed SMR. The reason for dividing into two is that for SMR drives capable of only sequential write/read, the location of LBA and actual physical location is different each time it is written, so an indirection mapping table is needed for this. If this mapping table is managed by the host, it is a host managed SMR drive, and if managed by the drive, it becomes a drive managed SMR drive. I joined SMR development late because of other projects I participated, and focused on fixing bugs that occurred during validation while most of the design and development were completed.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "15671c06-0d83-418d-b422-d0a222abbfee",
+    "slug": "secure-drive",
+    "title": "Secure Drive",
+    "date": "2022-08-30",
+    "excerpt": "It is a Storage drive(HDD, SSD), they are enabled Security protocols such as TCG, Sanitize, ATA Security, and security features such as Secure Boot.",
+    "content": "\r\n\r\n### Now I'm working at Western Digital as a firmware developer on a team that provides a common security engine for SSDs and HDDs. I am in charge of developing Security APIs so that the security engine provided by the team can be used according to the HDD characteristics.\r\n1. TCG protocols (TCG enterprise, opal, pyrite, etc).\r\n2. Sanitize\r\n3. ATA Security\r\n---\r\n\r\n#### 1. [TCG] (https://nvmexpress.org/wp-content/uploads/TCGandNVMe_Joint_White_Paper-TCG_Storage_Opal_and_NVMe_FINAL.pdf)  provides that data stored on HDDs or SSDs is self-encrypted under policy-based access control. The following link explains the TCG storage specification more easily. https://www.kingston.com/en/community/articledetail/articleid/51969\r\n\r\nThe following figure shows how reads/writes are access-controlled and encrypted in the TCG configuration store.\r\n![TCGHowitWorks](/images/blog/TCGHowitWorks.png)\r\n\r\n---\r\n### 2. [Sanitize] This function erases all data on the media (disk media, flash memory, DRAM memory) in the storage device. The Self-Encryption Drive encrypts data first, and then overwrites all data with a specific pattern or garbage data.\r\n---\r\n### 3. [ATA Security] This is a basic security feature provided by storage drives using SATA interface.\r\nThe following ATA security access controls are provided, which allow users to way to protect their data.\r\n\r\n![ATASecurityStateDiagram](/images/blog/ATASecurityStateDiagram.png)\r\n",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "e7da1859-8b13-46ee-a0d8-d344c2bc66c6",
+    "slug": "SIO",
+    "title": "Serial communication",
+    "date": "2022-08-30",
+    "excerpt": "Adding of half-duplex SIO communication along with the existing full-duplex",
+    "content": "\r\n\r\n### I developed a serial communication protocol. As for the background, as the tester that uses only a single serial bus was newly introduced, I had to change the firmware to use it with the tester that uses the existing dual serial bus, and I was in charge of developing the fimrware.\r\n\r\nThe purpose of this project is to change the firmware to work with testers with different serial communication methods on the same firmware. In the existing method, two serial bus lines are divided into TX and RX, and there is no collision between TX and RX. However, in communication using one serial bus line, collision between TX and RX may occur. We had to design the protocol so that collisions do not occur as much as possible, and when an collision occurs, error handling make it return to normal to continue communicate.",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "58ad3802-e3f3-452f-b0e1-80f8dfbb18c5",
+    "slug": "PCIeDeviceDriver",
+    "title": "PCIe AHCI Device Driver Development",
+    "date": "2022-08-30",
+    "excerpt": "Deep dive into PCIe AHCI Device Driver development for Hybrid HDD systems, focusing on performance optimization and hardware integration.",
+    "content": "\r\n\r\n## Project Overview\r\n\r\nLed the development of a PCIe AHCI device driver for a Solid State Hybrid Drive (SSHD) system. This innovative storage solution combines HDD capacity with SSD performance by utilizing a PCIe-connected SSD cache for frequently accessed data.\r\n\r\n## Technical Architecture\r\n\r\n### System Overview\r\nThe SSHD architecture integrates traditional HDD storage with a PCIe-connected SSD cache:\r\n\r\n![sshd-architecture](/images/blog/sshd-architecture.png)\r\n*Figure 1: High-level architecture of the Hybrid Storage System*\r\n\r\n### PCIe Port Initialization Flow\r\n\r\nThe PCIe controller initialization follows a precise sequence to ensure reliable operation:\r\n\r\n![pcie_port_open_flow](/images/blog/pcie_port_open_flow.png)\r\n*Figure 2: Detailed PCIe port initialization sequence*\r\n\r\n## Implementation Details\r\n\r\n### Driver Architecture\r\nThe PCIe AHCI driver implementation was structured around three key components:\r\n\r\n![PCIeOverall](/images/blog/PCIeOverall.png)\r\n\r\n*Figure 3: PCIe AHCI Driver Architecture*\r\n\r\n### Memory Mapping Strategy\r\n\r\nImplemented efficient BAR (Base Address Register) mapping for optimal performance:\r\n\r\n![BarMap](/images/blog/BarMap.png)\r\n*Figure 4: Base Address Register mapping architecture*\r\n\r\n### Key Implementation Steps\r\n\r\n1. **PCIe Configuration Space Management**\r\n   #### Configuration Space Layout\r\n![pcie-config-space](/images/blog/pcie-config-space.png)\r\n*Figure: PCIe Configuration Space Structure*\r\n#### Key Configuration Registers\r\n\r\n| Register | Offset | Purpose | Access Type |\r\n|----------|---------|---------|-------------|\r\n| Vendor/Device ID | 0x00-0x03 | Device identification | Read-only |\r\n| Command | 0x04-0x05 | Device control | Read/Write |\r\n| Status | 0x06-0x07 | Device status | Read-only |\r\n| BAR[0-5] | 0x10-0x24 | Memory/IO space mapping | Read/Write |\r\n| Interrupt | 0x3C-0x3F | Interrupt configuration | Read/Write |\r\n\r\n2. **AHCI Port Configuration**\r\n   - Port register initialization\r\n   - Command list and FIS base address setup\r\n   - Interrupt handling implementation\r\n   - Device presence verification\r\n\r\n3. **DMA Engine Setup**\r\n   - Command list structure initialization\r\n   - PRD (Physical Region Descriptor) table configuration\r\n   - Memory-mapped I/O optimization\r\n\r\n## Protocol Analysis\r\n\r\n### Link Training and State Management (LTSSM)\r\n\r\nThe PCIe link establishment process involves multiple states:\r\n\r\n![LTSSM](/images/blog/LTSSM.png)\r\n*Figure 5: Link Training and State Management flow*\r\n\r\n| State | Description | Key Operations |\r\n|-------|-------------|----------------|\r\n| Detection | Initial device presence detection | Electrical idle detection |\r\n| Polling | Training sequence exchange | Symbol lock establishment |\r\n| Configuration | Link width/speed negotiation | Capability exchange |\r\n| L0 | Normal operation state | Active data transfer |\r\n| Recovery | Link retraining/power state transition | Link maintenance |\r\n\r\n### Packet Transfer Protocol\r\n\r\nData transmission utilizes Transaction Layer Packets (TLP) and Data Link Layer Packets (DLLP):\r\n\r\n![PCIePacketTrans](/images/blog/PCIePacketTrans.png)\r\n*Figure 6: PCIe packet transfer protocol*\r\n\r\n## Performance Optimization\r\n\r\n### Key Metrics\r\n- Reduced latency through optimized interrupt handling\r\n- Improved throughput with efficient DMA transfers\r\n- Enhanced reliability through robust error handling\r\n\r\n### Benchmark Results\r\n[Consider adding performance graphs/charts here]\r\n\r\n## Technical Challenges and Solutions\r\n\r\n1. **Interrupt Handling**\r\n   - Challenge: Legacy interrupt limitations\r\n   - Solution: Implemented custom interrupt coalescing\r\n\r\n2. **DMA Performance**\r\n   - Challenge: Memory alignment issues\r\n   - Solution: Implemented aligned buffer management\r\n\r\n3. **Error Recovery**\r\n   - Challenge: Link state recovery\r\n   - Solution: Developed robust recovery mechanisms\r\n\r\n## Conclusion\r\n\r\nThis project successfully delivered a high-performance PCIe AHCI device driver, enabling efficient operation of hybrid storage systems. The implementation provides a foundation for future storage system optimizations.\r\n",
+    "category": "career",
+    "tags": [
+      "PCIe",
+      "AHCI",
+      "Device Drivers",
+      "Storage Systems",
+      "Embedded Systems"
+    ],
+    "series": [
+      "Device Driver Development"
+    ]
+  },
+  {
+    "id": "81bb2d29-4dcd-4c98-96e9-a08548fbe2dc",
+    "slug": "EthernetSwitch",
+    "title": "Layer 2 switch development",
+    "date": "2022-08-30",
+    "excerpt": "I have developed a layer 2 switch in Linux. And I developed functions such as DHCP and ARP.",
+    "content": "\r\n\r\n### When I was working at Dasan Networks ( https://en.wikipedia.org/wiki/DASAN_Networks ), I developed a Layer 2 switch device based on Dasan Networks' custom Linux using Broadcom and Marvell's Layer 2 switch SoCs. In addition, I have developed DHCP and ARP and other functions.\r\n---\r\n\r\nThe following figure shows the Linux network stack of 24 port ethernet switch.\r\nLayer 2 switch SoCs provides basic functions such as RX/TX Ring Buffer and MAC address learning table as shown in the figure below. In addition, it provides additional functions at the Ethernet level such as VLAN, STP and Link Aggregation.\r\n![LinuxKernelNetworkStack](/images/blog/LinuxKernelNetworkStack.png)\r\n\r\n---\r\n\r\nAlthough it is a Layer 2 switch network device, additional functions can be implemented by adding an application daemon running on the application layer as shown in the figure below.\r\n![dhcp](/images/blog/dhcp.png)\r\n\r\n---\r\n\r\nARP is handled directly by the Linux kernel, not by the application.\r\n![arp_1](/images/blog/arp_1.png)\r\n![arp_2](/images/blog/arp_2.png)\r\n\r\n",
+    "category": "career",
+    "tags": [
+      "hugo-site"
+    ],
+    "series": [
+      "Getting Started"
+    ]
+  },
+  {
+    "id": "a27c2234-e215-4e02-b672-73161e63dedd",
+    "slug": "contact",
+    "title": "Contact",
+    "date": "2019-02-25",
+    "excerpt": "",
+    "content": "\r\n** Contact page don't contain a body, just the front matter above.\r\nSee form.html in the layouts folder **\r\n",
+    "category": "form",
+    "tags": [],
+    "series": []
+  },
+  {
+    "id": "c0081aa3-a8ce-442e-89f1-bd03e70dff00",
+    "slug": "contact",
+    "title": "Contact",
+    "date": "2019-02-25",
+    "excerpt": "",
+    "content": "\r\n** Contact page don't contain a body, just the front matter above.\r\nSee form.html in the layouts folder **\r\n",
+    "category": "form",
+    "tags": [],
+    "series": []
+  }
+]
