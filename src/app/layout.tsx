@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import CustomCursor from "@/components/CustomCursor";
+import SocialSidebar from "@/components/SocialSidebar";
+import EmailSidebar from "@/components/EmailSidebar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "Demo Web Service",
-  description: "A Next.js web service with a blog feature",
+  title: "Myungguk Lee | Software Engineer",
+  description: "Myungguk Lee is a software engineer who specializes in building exceptional digital experiences.",
 };
 
 export default function RootLayout({
@@ -24,19 +23,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} bg-[var(--navy)] text-[var(--slate)]`}
       >
-        <Navigation />
-        <main className="min-h-screen">
-          {children}
-        </main>
-        <footer className="bg-gray-100 dark:bg-gray-900 py-6 mt-12">
-          <div className="container mx-auto px-4 text-center text-gray-500 dark:text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Demo Web Service. All rights reserved.</p>
-          </div>
-        </footer>
+        <ThemeProvider defaultTheme="dark">
+          <Navigation />
+          <SocialSidebar />
+          <EmailSidebar />
+          <main>
+            {children}
+          </main>
+          <CustomCursor />
+        </ThemeProvider>
       </body>
     </html>
   );
