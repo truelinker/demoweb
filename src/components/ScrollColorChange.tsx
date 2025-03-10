@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 // Debounce function to limit how often the scroll handler fires
-const debounce = <T extends (...args: any[]) => void>(
+const debounce = <T extends (...args: unknown[]) => void>(
   func: T, 
   wait: number
 ) => {
