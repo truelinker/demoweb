@@ -28,7 +28,9 @@ export function ThemeToggle() {
         className={`flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 
           hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 
           ${theme === 'light' ? 'bg-white text-blue-600' : 
-            theme === 'dark' ? 'bg-gray-800 text-blue-400' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+            theme === 'dark' ? 'bg-gray-800 text-blue-400' : 
+            theme === 'system' ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300' : 
+            'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
         onClick={() => setOpen(!open)}
         aria-label="Toggle theme"
       >
