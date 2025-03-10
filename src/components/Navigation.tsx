@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Navigation() {
   const pathname = usePathname();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
   const [scrolledToTop, setScrolledToTop] = useState(true);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
@@ -43,6 +44,7 @@ export default function Navigation() {
     { name: 'Contact', path: '/#contact' },
   ];
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resumePath = '/resume';
   
   return (

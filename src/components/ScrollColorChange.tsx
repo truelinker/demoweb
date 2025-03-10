@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 
 // Debounce function to limit how often the scroll handler fires
-const debounce = (func: Function, wait: number) => {
+const debounce = <T extends (...args: any[]) => void>(
+  func: T, 
+  wait: number
+) => {
   let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: any[]) {
+  return function executedFunction(...args: Parameters<T>) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -73,6 +76,7 @@ const getColorForScrollPosition = (scrollProgress: number): string => {
 };
 
 export default function ScrollColorChange() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [bgColor, setBgColor] = useState('#0a192f'); // Initial color (navy)
 
   useEffect(() => {

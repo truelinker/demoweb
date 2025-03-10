@@ -77,9 +77,9 @@ export default async function BlogPostPage(props: {
             <ReactMarkdown
               components={{
                 // Add extra padding to headings to prevent them from being hidden under the navbar
-                h1: ({node, ...props}) => <h1 className="pt-6 mt-6" {...props} />,
-                h2: ({node, ...props}) => <h2 className="pt-6 mt-6" {...props} />,
-                h3: ({node, ...props}) => <h3 className="pt-4 mt-4" {...props} />,
+                h1: ({...props}) => <h1 className="pt-6 mt-6" {...props} />,
+                h2: ({...props}) => <h2 className="pt-6 mt-6" {...props} />,
+                h3: ({...props}) => <h3 className="pt-4 mt-4" {...props} />,
               }}
             >
               {post.content}

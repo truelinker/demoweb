@@ -1,11 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import DashboardCard from '@/components/DashboardCard';
-import DashboardButton from '@/components/DashboardButton';
-import DashboardToggle from '@/components/DashboardToggle';
 import { useTheme } from '@/components/ThemeProvider';
 
 // Define types for company details
@@ -38,8 +34,11 @@ type ProjectDetail = {
 };
 
 export default function Home() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { theme, setTheme } = useTheme();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [controlValue, setControlValue] = useState(50);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isRotated, setIsRotated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [activeCompany, setActiveCompany] = useState<CompanyKey>('westernDigital');
@@ -47,7 +46,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Featured projects data
-  const featuredProjects: ProjectDetail[] = [
+  const featuredProjects = useMemo<ProjectDetail[]>(() => [
     {
       title: "Optimizing DPD Algorithm with ARM NEON SIMD",
       description: "A deep dive into optimizing Digital Predistortion algorithm using ARM Cortex-A's NEON SIMD capabilities. This project focuses on accelerating DSP performance through NEON register optimization techniques.",
@@ -104,7 +103,7 @@ export default function Home() {
       externalLink: "/blog/flash-writer-implementation-for-embedded-systems",
       featured: true
     }
-  ];
+  ], []);
 
   // Extract unique categories
   const projectCategories = useMemo(() => {
@@ -297,7 +296,7 @@ export default function Home() {
           </h3>
           
           <p className={`max-w-xl mt-5 text-[var(--slate)] ${fadeClass(400)}`}>
-            I am a Firmware Engineer at <a href="https://greenwaveradios.com" className="inline-link" target="_blank" rel="noopener noreferrer">GreenWave Radios</a>, where I currently develop firmware for 5G Radio Unit (RU) SoC. With over a decade of experience in embedded systems development, I've designed and implemented firmware solutions for a diverse range of products across multiple industries. My expertise spans microcontroller programming, real-time operating systems, hardware-software integration, and low-level device drivers. I'm passionate about creating efficient, reliable embedded systems that solve complex technical challenges while meeting stringent performance requirements. Throughout my career, I've consistently delivered innovative firmware solutions that balance technical excellence with practical implementation.
+            I am a Firmware Engineer at <a href="https://greenwaveradios.com" className="inline-link" target="_blank" rel="noopener noreferrer">GreenWave Radios</a>, where I currently develop firmware for 5G Radio Unit (RU) SoC. With over a decade of experience in embedded systems development, I&apos;ve designed and implemented firmware solutions for a diverse range of products across multiple industries. My expertise spans microcontroller programming, real-time operating systems, hardware-software integration, and low-level device drivers. I&apos;m passionate about creating efficient, reliable embedded systems that solve complex technical challenges while meeting stringent performance requirements. Throughout my career, I&apos;ve consistently delivered innovative firmware solutions that balance technical excellence with practical implementation.
           </p>
           
           <div className={fadeClass(500)}>
@@ -318,11 +317,11 @@ export default function Home() {
           <div>
             <div className="space-y-4 text-[var(--slate)]">
               <p>
-                Hello! I'm Myungguk, a firmware engineer passionate about building efficient, reliable embedded systems. My journey in embedded development began at Dasan Networks, where I developed software for networking devices.
+                Hello! I&apos;m Myungguk, a firmware engineer passionate about building efficient, reliable embedded systems. My journey in embedded development began at Dasan Networks, where I developed software for networking devices.
               </p>
               
               <p>
-                Over the past 15+ years, I've worked across various domains from networking equipment to storage devices and wireless communication systems. This diverse experience has given me a comprehensive understanding of embedded systems architecture, real-time constraints, and hardware-software interfaces.
+                Over the past 15+ years, I&apos;ve worked across various domains from networking equipment to storage devices and wireless communication systems. This diverse experience has given me a comprehensive understanding of embedded systems architecture, real-time constraints, and hardware-software interfaces.
               </p>
               
               <p>
@@ -330,7 +329,7 @@ export default function Home() {
               </p>
               
               <p>
-                Here are some technologies I've been working with recently:
+                Here are some technologies I&apos;ve been working with recently:
               </p>
             </div>
             
@@ -365,7 +364,7 @@ export default function Home() {
       {/* Experience Section */}
       <section id="experience" className="section py-20">
         <h2 className="section-heading">
-          <span className="number">02.</span> Where I've Worked
+          <span className="number">02.</span> Where I&apos;ve Worked
         </h2>
         
         <div className="grid md:grid-cols-[170px_1fr] gap-4">
@@ -410,7 +409,7 @@ export default function Home() {
       {/* Work Section - Featured Projects */}
       <section id="work" className="section py-20">
         <h2 className="section-heading">
-          <span className="number">03.</span> Some Things I've Built
+          <span className="number">03.</span> Some Things I&apos;ve Built
         </h2>
         
         {/* Filter buttons */}
@@ -547,13 +546,13 @@ export default function Home() {
       {/* Contact Section */}
       <section id="contact" className="section py-20 text-center">
         <h2 className="section-heading justify-center">
-          <span className="number">04.</span> What's Next?
+          <span className="number">04.</span> What&apos;s Next?
         </h2>
         
         <h3 className="text-4xl text-[var(--lightest-slate)] mt-10 mb-4">Get In Touch</h3>
         
         <p className="text-[var(--slate)] max-w-lg mx-auto mb-12">
-          I'm always open to discussing new projects, creative ideas, or opportunities to be part of your vision. Feel free to reach out if you'd like to connect!
+          I&apos;m always open to discussing new projects, creative ideas, or opportunities to be part of your vision. Feel free to reach out if you&apos;d like to connect!
         </p>
         
         <a href="mailto:myungguk.lee@gmail.com" className="button">

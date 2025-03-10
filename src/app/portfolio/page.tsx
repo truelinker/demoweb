@@ -121,13 +121,13 @@ export default function PortfolioPage() {
             <div className="md:col-span-3">
               <h2 className="text-3xl font-bold mb-4">Interested in working together?</h2>
               <p className="text-amber-50 text-lg mb-6">
-                I'm always open to discussing new projects, creative ideas or opportunities to be part of your visions.
+                I&apos;m always open to discussing new projects, creative ideas or opportunities to be part of your visions.
               </p>
               <Link
                 href="/contact"
                 className="px-8 py-4 bg-white text-amber-600 font-bold rounded-xl inline-flex items-center gap-2 hover:bg-amber-50 transition-colors"
               >
-                Let's Connect
+                Let&apos;s Connect
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
