@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Add scroll padding for fixed header */
+html {
+  scroll-padding-top: 120px; /* Slightly more than --nav-height to ensure content is visible */
+}
+
 :root {
   --navy: #0a192f;
   --light-navy: #112240;
@@ -228,6 +233,22 @@ a:focus {
   transition: opacity 300ms var(--easing);
 }
 
+/* Project card animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s forwards;
+}
+
 /* Add a max-width container */
 .container {
   width: 100%;
@@ -374,22 +395,93 @@ a:focus {
   white-space: nowrap;
 }
 
+/* Enhanced project links styling */
 .project-links {
   display: flex;
   align-items: center;
   margin-top: 10px;
   margin-left: -10px;
   color: var(--lightest-slate);
+  position: relative;
 }
 
+/* Add a subtle "View Project" indicator */
+.project-links::after {
+  content: 'View Project';
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  font-size: var(--fz-xs);
+  font-family: var(--font-mono);
+  color: var(--green);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all 0.25s var(--easing);
+  pointer-events: none;
+}
+
+.project-links:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Enhanced link styling with animation */
 .project-links a {
   padding: 10px;
   color: var(--lightest-slate);
+  position: relative;
+  border-radius: 50%;
+  transition: all 0.25s var(--easing);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* Pulsing animation for the links */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.1);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(100, 255, 218, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(100, 255, 218, 0);
+  }
+}
+
+/* Apply animation to links */
+.project-links a {
+  animation: pulse-glow 2s infinite;
+  animation-delay: calc(var(--i, 0) * 1s);
+}
+
+.project-links a:nth-child(1) {
+  --i: 0;
+}
+
+.project-links a:nth-child(2) {
+  --i: 1;
+}
+
+/* Enhanced hover effect */
 .project-links a:hover,
 .project-links a:focus {
   color: var(--green);
+  background-color: var(--green-tint);
+  transform: scale(1.15) translateY(-3px);
+}
+
+/* Rotate icon slightly on hover */
+.project-links a:hover svg,
+.project-links a:focus svg {
+  transform: rotate(-5deg);
+  transition: transform 0.3s var(--easing);
+}
+
+/* Style for the icons */
+.project-links a svg {
+  transition: all 0.25s var(--easing);
 }
 
 .project-image {
@@ -435,4 +527,45 @@ a:focus {
 .project-image:hover img,
 .project-image:focus img {
   filter: none;
+}
+
+/* Add blog-specific styles to prevent header overlap */
+.blog-post-container {
+  position: relative;
+}
+
+.blog-content {
+  /* Ensure headings and content have proper spacing */
+}
+
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4,
+.blog-content h5,
+.blog-content h6 {
+  scroll-margin-top: 120px; /* Match scroll-padding-top */
+  position: relative;
+  padding-top: 0.75rem;
+}
+
+.blog-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1.5rem 0;
+}
+
+/* Enhance figure and image captions */
+.blog-content figure {
+  margin: 2rem 0;
+}
+
+.blog-content figure figcaption,
+.blog-content img + em {
+  display: block;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--light-slate);
+  margin-top: 0.5rem;
 }

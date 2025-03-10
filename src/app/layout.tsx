@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import CustomCursor from "@/components/CustomCursor";
 import SocialSidebar from "@/components/SocialSidebar";
 import EmailSidebar from "@/components/EmailSidebar";
+import ScrollColorChange from "@/components/ScrollColorChange";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,12 +26,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
-        className={`${inter.variable} bg-[var(--navy)] text-[var(--slate)]`}
+        className={`${inter.variable} bg-[var(--navy)] text-[var(--slate)] transition-colors duration-300`}
       >
         <ThemeProvider defaultTheme="dark">
           <Navigation />
           <SocialSidebar />
           <EmailSidebar />
+          <ScrollColorChange />
           <main>
             {children}
           </main>
