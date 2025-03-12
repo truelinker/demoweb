@@ -15,8 +15,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Myungguk Lee | Software Engineer",
-  description: "Myungguk Lee is a software engineer who specializes in building exceptional digital experiences.",
+  title: " Myung Guk Lee | Software Engineer",
+  description: " Myung Guk Lee is a software engineer who specializes in building exceptional digital experiences.",
 };
 
 export default function RootLayout({

@@ -288,7 +288,7 @@ export default function Home() {
           </h1>
           
           <h2 className={`big-heading text-[var(--lightest-slate)] ${fadeClass(200)}`}>
-            Myungguk Lee.
+             Myung Guk Lee.
           </h2>
           
           <h3 className={`big-heading text-[var(--slate)] ${fadeClass(300)}`}>
@@ -296,7 +296,7 @@ export default function Home() {
           </h3>
           
           <p className={`max-w-xl mt-5 text-[var(--slate)] ${fadeClass(400)}`}>
-            I am a Firmware Engineer at <a href="https://greenwaveradios.com" className="inline-link" target="_blank" rel="noopener noreferrer">GreenWave Radios</a>, where I currently develop firmware for 5G Radio Unit (RU) SoC. With over a decade of experience in embedded systems development, I&apos;ve designed and implemented firmware solutions for a diverse range of products across multiple industries. My expertise spans microcontroller programming, real-time operating systems, hardware-software integration, and low-level device drivers. I&apos;m passionate about creating efficient, reliable embedded systems that solve complex technical challenges while meeting stringent performance requirements. Throughout my career, I&apos;ve consistently delivered innovative firmware solutions that balance technical excellence with practical implementation.
+            I am a Senior Firmware Engineer with over 15 years of experience, currently developing advanced 5G Radio Unit firmware at <a href="https://greenwaveradios.com" className="inline-link" target="_blank" rel="noopener noreferrer">GreenWave Radios</a>. I specialize in embedded systems architecture, real-time operating systems, and hardware-software integration for mission-critical applications.
           </p>
           
           <div className={fadeClass(500)}>
@@ -317,15 +317,15 @@ export default function Home() {
           <div>
             <div className="space-y-4 text-[var(--slate)]">
               <p>
-                Hello! I&apos;m Myungguk, a firmware engineer passionate about building efficient, reliable embedded systems. My journey in embedded development began at Dasan Networks, where I developed software for networking devices.
+                Hello! I&apos;m Myung Guk,a firmware engineer passionate about building efficient, reliable embedded systems. My journey in embedded development began at Dasan Networks, where I developed software for networking devices.
               </p>
               
               <p>
-                Over the past 15+ years, I&apos;ve worked across various domains from networking equipment to storage devices and wireless communication systems. This diverse experience has given me a comprehensive understanding of embedded systems architecture, real-time constraints, and hardware-software interfaces.
+              Over the past 15+ years, I&apos;ve worked across various domains from networking equipment to storage devices and wireless communication systems. This diverse experience has given me a comprehensive understanding of embedded systems architecture, real-time constraints, and hardware-software interfaces.
               </p>
               
               <p>
-                My approach combines deep technical expertise with practical implementation. I enjoy solving complex problems that bridge the gap between hardware capabilities and software requirements.
+              My approach combines deep technical expertise with practical implementation. I enjoy solving complex problems that bridge the gap between hardware capabilities and software requirements.
               </p>
               
               <p>
@@ -334,14 +334,12 @@ export default function Home() {
             </div>
             
             <ul className="grid grid-cols-2 gap-x-2 gap-y-2 mt-5">
-              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">ARM Cortex-M/A</li>
+              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">ARM Cortex-M/A/R</li>
               <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">RTOS (ThreadX, FreeRTOS)</li>
               <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">Embedded C/C++</li>
-              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">SoC Architecture</li>
               <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">Device Drivers</li>
-              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">DSP Algorithms</li>
               <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">NEON SIMD</li>
-              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">Hardware Security</li>
+              <li className="font-mono text-xs text-[var(--slate)] flex items-center before:content-['▹'] before:text-[var(--green)] before:mr-2">Tool Development using Python</li>
             </ul>
           </div>
           
@@ -349,7 +347,7 @@ export default function Home() {
             <div className="relative z-10 overflow-hidden rounded-md bg-[var(--green)] w-full h-full">
               <Image 
                 src="/images/blog/myunglogo.png" 
-                alt="Myungguk Lee"
+                alt=" Myung Guk Lee"
                 width={300}
                 height={300}
                 className="mix-blend-multiply filter grayscale contrast-100 brightness-90 hover:filter-none transition-all duration-300"
@@ -555,14 +553,14 @@ export default function Home() {
           I&apos;m always open to discussing new projects, creative ideas, or opportunities to be part of your vision. Feel free to reach out if you&apos;d like to connect!
         </p>
         
-        <a href="mailto:myungguk.lee@gmail.com" className="button">
+        <a href="mailto:truelinker@gmail.com" className="button">
           Say Hello
         </a>
       </section>
       
       {/* Footer */}
       <footer className="py-6 text-center text-[var(--light-slate)] text-sm font-mono">
-        <div>Designed & Built by Myungguk Lee</div>
+        <div>Designed & Built by Myung Guk Lee</div>
         <div className="mt-2">© {new Date().getFullYear()} All Rights Reserved</div>
       </footer>
     </div>
