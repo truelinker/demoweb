@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { MDXRemote } from 'next-mdx-remote';
 import { serialize } from 'next-mdx-remote/serialize';
+import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { components } from './MDXComponents';
@@ -12,7 +13,7 @@ interface MDXContentProps {
 }
 
 export default function MDXContent({ content }: MDXContentProps) {
-  const [mdxSource, setMdxSource] = useState<any>(null);
+  const [mdxSource, setMdxSource] = useState<MDXRemoteSerializeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function MDXContent({ content }: MDXContentProps) {
       
       try {
         // Step 1: Pre-process content to fix common markdown issues
-        let processedContent = content
+        const processedContent = content
           // Add line breaks around tables
           .replace(/(\|[^\n]*\|)(?!\n)/g, '$1\n')
           // Make sure table lines are properly aligned
