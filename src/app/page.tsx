@@ -52,7 +52,7 @@ export default function Home() {
       description: "A deep dive into optimizing Digital Predistortion algorithm using ARM Cortex-A's NEON SIMD capabilities. This project focuses on accelerating DSP performance through NEON register optimization techniques.",
       category: "DSP",
       technologies: ["ARM", "NEON SIMD", "Performance Optimization", "DSP"],
-      externalLink: "/blog/optimizing-dpd-algorithm-with-arm-neon-simd",
+      externalLink: "/career/optimizing-dpd-algorithm-with-arm-neon-simd",
       featured: true
     },
     {
@@ -60,7 +60,7 @@ export default function Home() {
       description: "Implemented a File System on QSPI NOR flash. Using Azure RTOS (ThreadX) FileX/LevelX APIs to develop FAT16/32 file systems on flash memory.",
       category: "Storage",
       technologies: ["Azure RTOS", "ThreadX", "FileX/LevelX", "QSPI Flash"],
-      externalLink: "/blog/flash-filesystem",
+      externalLink: "/career/flash-filesystem",
       featured: true
     },
     {
@@ -68,7 +68,7 @@ export default function Home() {
       description: "Storage drive (HDD, SSD) with security protocols such as TCG, Sanitize, ATA Security, and security features such as Secure Boot enabled.",
       category: "Security",
       technologies: ["TCG", "Sanitize", "ATA Security", "Secure Boot"],
-      externalLink: "/blog/secure-drive",
+      externalLink: "/career/secure-drive",
       featured: true
     },
     {
@@ -76,7 +76,7 @@ export default function Home() {
       description: "Development of SMR HDD firmware that only uses sequential read and write. Participated in drive-managed SMR HDD development, focusing on validation and bug fixing.",
       category: "Storage",
       technologies: ["HDD Firmware", "SMR", "Sequential I/O", "Indirection Mapping"],
-      externalLink: "/blog/smr",
+      externalLink: "/career/smr",
       featured: true
     },
     {
@@ -84,7 +84,7 @@ export default function Home() {
       description: "Deep dive into PCIe AHCI Device Driver development for Hybrid HDD systems, focusing on performance optimization and hardware integration.",
       category: "Driver",
       technologies: ["PCIe", "AHCI", "Device Drivers", "Storage Systems"],
-      externalLink: "/blog/pcie-ahci-device-driver-development",
+      externalLink: "/career/pcie-ahci-device-driver-development",
       featured: true
     },
     {
@@ -92,7 +92,7 @@ export default function Home() {
       description: "Adding half-duplex SIO communication along with the existing full-duplex protocol. Developed firmware to work with testers that use different serial communication methods, including collision handling.",
       category: "Communication",
       technologies: ["Serial Communication", "Half-Duplex", "Protocol Design", "Error Handling"],
-      externalLink: "/blog/serial-communication",
+      externalLink: "/career/serial-communication",
       featured: true
     },
     {
@@ -100,7 +100,7 @@ export default function Home() {
       description: "Deep dive into the implementation of a Flash Writer program for embedded systems, focusing on secure boot sequence and memory management for multi-core boot systems.",
       category: "Embedded",
       technologies: ["Flash Memory", "Bootloader", "Embedded Systems", "RTOS"],
-      externalLink: "/blog/flash-writer-implementation-for-embedded-systems",
+      externalLink: "/career/flash-writer-implementation-for-embedded-systems",
       featured: true
     }
   ], []);

@@ -13,6 +13,7 @@ export interface BlogPost {
   category?: string;
   tags?: string[];
   series?: string[];
+  subtitle?: string;  // Add subtitle field for MDX frontmatter
 }
 
 // Get the data directory path

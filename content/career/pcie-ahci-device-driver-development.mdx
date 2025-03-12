@@ -22,7 +22,6 @@ categories:
 layout: single
 ---
 
-
 ## Project Overview
 
 Led the development of a PCIe AHCI device driver for a Solid State Hybrid Drive (SSHD) system. This innovative storage solution combines HDD capacity with SSD performance by utilizing a PCIe-connected SSD cache for frequently accessed data.
@@ -60,30 +59,40 @@ Implemented efficient BAR (Base Address Register) mapping for optimal performanc
 
 ### Key Implementation Steps
 
-1. **PCIe Configuration Space Management**
-   #### Configuration Space Layout
+#### 1. PCIe Configuration Space Management
+
+##### Configuration Space Layout
 ![alt](/images/blog/pcie-config-space.png)
-*Figure: PCIe Configuration Space Structure*
-#### Key Configuration Registers
+*Figure 5: PCIe Configuration Space Structure*
 
-| Register | Offset | Purpose | Access Type |
-|----------|---------|---------|-------------|
-| Vendor/Device ID | 0x00-0x03 | Device identification | Read-only |
-| Command | 0x04-0x05 | Device control | Read/Write |
-| Status | 0x06-0x07 | Device status | Read-only |
-| BAR[0-5] | 0x10-0x24 | Memory/IO space mapping | Read/Write |
-| Interrupt | 0x3C-0x3F | Interrupt configuration | Read/Write |
+##### Key Configuration Registers
 
-2. **AHCI Port Configuration**
-   - Port register initialization
-   - Command list and FIS base address setup
-   - Interrupt handling implementation
-   - Device presence verification
+The following table outlines the essential configuration registers used in the PCIe AHCI driver:
 
-3. **DMA Engine Setup**
-   - Command list structure initialization
-   - PRD (Physical Region Descriptor) table configuration
-   - Memory-mapped I/O optimization
+| Register        | Offset     | Purpose                   | Access Type  |
+|-----------------|------------|---------------------------|--------------|
+| Vendor/Device ID| 0x00-0x03  | Device identification     | Read-only    |
+| Command         | 0x04-0x05  | Device control            | Read/Write   |
+| Status          | 0x06-0x07  | Device status             | Read-only    |
+| BAR[0-5]        | 0x10-0x24  | Memory/IO space mapping   | Read/Write   |
+| Interrupt       | 0x3C-0x3F  | Interrupt configuration   | Read/Write   |
+
+#### 2. AHCI Port Configuration
+
+Implementation involved the following critical steps:
+
+- Port register initialization
+- Command list and FIS base address setup
+- Interrupt handling implementation
+- Device presence verification
+
+#### 3. DMA Engine Setup
+
+The DMA engine required careful configuration:
+
+- Command list structure initialization
+- PRD (Physical Region Descriptor) table configuration
+- Memory-mapped I/O optimization
 
 ## Protocol Analysis
 
@@ -92,22 +101,24 @@ Implemented efficient BAR (Base Address Register) mapping for optimal performanc
 The PCIe link establishment process involves multiple states:
 
 ![alt](/images/blog/LTSSM.png)
-*Figure 5: Link Training and State Management flow*
+*Figure 6: Link Training and State Management flow*
 
-| State | Description | Key Operations |
-|-------|-------------|----------------|
-| Detection | Initial device presence detection | Electrical idle detection |
-| Polling | Training sequence exchange | Symbol lock establishment |
-| Configuration | Link width/speed negotiation | Capability exchange |
-| L0 | Normal operation state | Active data transfer |
-| Recovery | Link retraining/power state transition | Link maintenance |
+The following table outlines the key states in the LTSSM process:
+
+| State          | Description                      | Key Operations               |
+|----------------|----------------------------------|------------------------------|
+| Detection      | Initial device presence detection | Electrical idle detection    |
+| Polling        | Training sequence exchange       | Symbol lock establishment    |
+| Configuration  | Link width/speed negotiation     | Capability exchange          |
+| L0             | Normal operation state           | Active data transfer         |
+| Recovery       | Link retraining/power state transition | Link maintenance       |
 
 ### Packet Transfer Protocol
 
 Data transmission utilizes Transaction Layer Packets (TLP) and Data Link Layer Packetss (DLLP):
 
 ![alt](/images/blog/PCIePacketTrans.png)
-*Figure 6: PCIe packet transfer protocol*
+*Figure 7: PCIe packet transfer protocol*
 
 ## Performance Optimization
 
@@ -121,17 +132,17 @@ Data transmission utilizes Transaction Layer Packets (TLP) and Data Link Layer P
 
 ## Technical Challenges and Solutions
 
-1. **Interrupt Handling**
-   - Challenge: Legacy interrupt limitations
-   - Solution: Implemented custom interrupt coalescing
+### 1. Interrupt Handling
+- **Challenge**: Legacy interrupt limitations
+- **Solution**: Implemented custom interrupt coalescing
 
-2. **DMA Performance**
-   - Challenge: Memory alignment issues
-   - Solution: Implemented aligned buffer management
+### 2. DMA Performance
+- **Challenge**: Memory alignment issues
+- **Solution**: Implemented aligned buffer management
 
-3. **Error Recovery**
-   - Challenge: Link state recovery
-   - Solution: Developed robust recovery mechanisms
+### 3. Error Recovery
+- **Challenge**: Link state recovery
+- **Solution**: Developed robust recovery mechanisms
 
 ## Conclusion
 

@@ -1,13 +1,26 @@
+import { getMDXPostsByCategory } from '@/utils/mdxUtils';
 import { getPostsByCategory } from '@/utils/markdownUtils';
+import dynamic from 'next/dynamic';
 
 export const metadata = {
   title: 'Career | Demo Web Service',
   description: 'My professional background and experience.',
 };
 
+// Use dynamic import for MDX content
+const MDXContent = dynamic(() => import('@/components/MDXContent'), {
+  loading: () => <p>Loading...</p>,
+});
+
 export default function CareerPage() {
-  // Try to find career posts from converted content
-  const careerPosts = getPostsByCategory('career');
+  // Try to find career posts from MDX content first
+  const mdxCareerPosts = getMDXPostsByCategory('career');
+  
+  // If no MDX posts, fall back to markdown posts
+  const markdownCareerPosts = getPostsByCategory('career');
+  
+  // Use MDX posts if available, otherwise use markdown posts
+  const careerPosts = mdxCareerPosts.length > 0 ? mdxCareerPosts : markdownCareerPosts;
   const careerContent = careerPosts.length > 0 ? careerPosts[0].content : null;
 
   return (
@@ -15,10 +28,13 @@ export default function CareerPage() {
       <h1 className="text-3xl font-bold mb-8">Career</h1>
       
       {careerContent ? (
-        <div 
-          className="prose dark:prose-invert lg:prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: careerContent }}
-        />
+        <div className="prose dark:prose-invert lg:prose-lg max-w-none">
+          {mdxCareerPosts.length > 0 ? (
+            <MDXContent content={careerContent} />
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: careerContent }} />
+          )}
+        </div>
       ) : (
         <div className="prose dark:prose-invert lg:prose-lg max-w-none">
           <h2>Professional Experience</h2>

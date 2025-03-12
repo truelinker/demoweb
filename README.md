@@ -16,6 +16,11 @@ pnpm dev
 bun dev
 ```
 
+``` 
+build
+npm run build
+````
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Deploying to Render
