@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getPostsByCategory } from '@/utils/markdownUtils';
+import { getMDXPostsByCategory } from '@/utils/mdxUtils';
 
 export const metadata = {
   title: 'Portfolio | Demo Web Service',
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default function PortfolioPage() {
-  const portfolioItems = getPostsByCategory('portfolio');
+  const portfolioItems = getMDXPostsByCategory('portfolio');
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
               </div>
               
               <h2 className="text-xl font-bold mb-3 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                <Link href={`/blog/${item.slug}`} className="after:absolute after:inset-0">
+                <Link href={`/portfolio/${item.slug}`} className="after:absolute after:inset-0">
                   {item.title}
                 </Link>
               </h2>

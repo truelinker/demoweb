@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import CustomCursor from "@/components/CustomCursor";
 import SocialSidebar from "@/components/SocialSidebar";
 import EmailSidebar from "@/components/EmailSidebar";
 import ScrollColorChange from "@/components/ScrollColorChange";
@@ -38,7 +37,6 @@ export default function RootLayout({
             <main>
               {children}
             </main>
-            <CustomCursor />
           </MDXComponentsProvider>
         </ThemeProvider>
       </body>

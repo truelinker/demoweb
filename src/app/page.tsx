@@ -31,6 +31,7 @@ type ProjectDetail = {
   githubLink?: string;
   externalLink: string;
   featured?: boolean;
+  type?: 'career' | 'portfolio';
 };
 
 export default function Home() {
@@ -53,7 +54,8 @@ export default function Home() {
       category: "DSP",
       technologies: ["ARM", "NEON SIMD", "Performance Optimization", "DSP"],
       externalLink: "/career/optimizing-dpd-algorithm-with-arm-neon-simd",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "Flash FileSystem",
@@ -61,7 +63,8 @@ export default function Home() {
       category: "Storage",
       technologies: ["Azure RTOS", "ThreadX", "FileX/LevelX", "QSPI Flash"],
       externalLink: "/career/flash-filesystem",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "Secure Drive",
@@ -69,7 +72,8 @@ export default function Home() {
       category: "Security",
       technologies: ["TCG", "Sanitize", "ATA Security", "Secure Boot"],
       externalLink: "/career/secure-drive",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "Shingled Magnetic Recording (SMR)",
@@ -77,7 +81,8 @@ export default function Home() {
       category: "Storage",
       technologies: ["HDD Firmware", "SMR", "Sequential I/O", "Indirection Mapping"],
       externalLink: "/career/smr",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "PCIe AHCI Device Driver Development",
@@ -85,7 +90,8 @@ export default function Home() {
       category: "Driver",
       technologies: ["PCIe", "AHCI", "Device Drivers", "Storage Systems"],
       externalLink: "/career/pcie-ahci-device-driver-development",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "Half-Duplex SIO Communication",
@@ -93,15 +99,46 @@ export default function Home() {
       category: "Communication",
       technologies: ["Serial Communication", "Half-Duplex", "Protocol Design", "Error Handling"],
       externalLink: "/career/serial-communication",
-      featured: true
+      featured: true,
+      type: "career"
     },
     {
       title: "Flash Writer Implementation",
       description: "Deep dive into the implementation of a Flash Writer program for embedded systems, focusing on secure boot sequence and memory management for multi-core boot systems.",
-      category: "Embedded",
-      technologies: ["Flash Memory", "Bootloader", "Embedded Systems", "RTOS"],
-      externalLink: "/career/flash-writer-implementation-for-embedded-systems",
-      featured: true
+      category: "Firmware",
+      technologies: ["Bootloader", "Flash Memory", "Secure Boot", "Multi-core Systems"],
+      externalLink: "/career/flash-writer-implementation",
+      featured: true,
+      type: "career"
+    },
+    // Add portfolio projects
+    {
+      title: "Word Memorization App",
+      description: "Android app to help users memorize new English words using spaced repetition and visual learning techniques. Designed for GRE and TOEFL preparation.",
+      category: "Mobile",
+      technologies: ["Android", "Java", "SQLite", "UX Design"],
+      externalLink: "/portfolio/word-memorization-app",
+      githubLink: "https://github.com/truelinker/vocaMaster",
+      featured: true,
+      type: "portfolio"
+    },
+    {
+      title: "Log Parser",
+      description: "Command-line tool for parsing and analyzing log files. Features include pattern matching, statistical analysis, and customizable reporting.",
+      category: "Tools",
+      technologies: ["Python", "RegEx", "Data Analysis", "CLI"],
+      externalLink: "/portfolio/log-parser",
+      featured: true,
+      type: "portfolio"
+    },
+    {
+      title: "WebRTC Communications",
+      description: "Real-time communication application using WebRTC for video and audio calls. Includes features such as screen sharing and text chat.",
+      category: "Web",
+      technologies: ["WebRTC", "JavaScript", "Node.js", "WebSockets"],
+      externalLink: "/portfolio/web-rtc",
+      featured: true,
+      type: "portfolio"
     }
   ], []);
 
@@ -454,7 +491,17 @@ export default function Home() {
               <div 
                 className={`group h-full overflow-hidden rounded-lg border border-[var(--lightest-navy)] bg-[var(--light-navy)] shadow-md transition-all duration-300 ${
                   hoveredProject === project.title ? 'transform -translate-y-2 shadow-xl' : ''
-                }`}
+                } cursor-pointer hover:border-[var(--green)]`}
+                onClick={() => window.open(project.externalLink, '_blank', 'noopener,noreferrer')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.open(project.externalLink, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${project.title} project`}
               >
                 {/* Card Header */}
                 <div className={`
@@ -488,7 +535,9 @@ export default function Home() {
                             className="text-[var(--lightest-slate)] hover:text-[var(--green)]"
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label="GitHub Link"
+                            aria-label={`View ${project.title} on GitHub`}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
@@ -501,7 +550,9 @@ export default function Home() {
                           className="text-[var(--lightest-slate)] hover:text-[var(--green)]"
                           target="_blank"
                           rel="noopener noreferrer"
-                          aria-label="External Link"
+                          aria-label={`Open ${project.title} project`}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -512,9 +563,9 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <h3 className="text-xl font-semibold text-[var(--lightest-slate)]">
+                    <span className="text-xl font-semibold text-[var(--lightest-slate)] group-hover:text-[var(--green)] transition-colors">
                       {project.title}
-                    </h3>
+                    </span>
                   </div>
                 </div>
                 
