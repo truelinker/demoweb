@@ -36,24 +36,6 @@ In serial communication, there are two primary modes of operation:
 
 - **Half-Duplex**: Uses a single channel for both transmitting and receiving data, where communication occurs in only one direction at a time. This requires careful coordination to prevent collisions when both ends try to transmit simultaneously.
 
-```
-  FULL-DUPLEX                 HALF-DUPLEX
-  
-  Device A      Device B      Device C      Device D
-  +------+      +------+      +------+      +------+
-  |      |---TX->|      |      |      |      |      |
-  |      |      |      |      |      |      |      |
-  |      |<--RX--|      |      |      |=====Time 1=====>|      |
-  +------+      +------+      |      |      |      |
-                              |      |      |      |
-                              |      |<====Time 2======|      |
-                              +------+      +------+
-  
-  * Simultaneous TX/RX        * Takes turns on shared line
-  * Two separate lines        * One shared line
-```
-*Figure 1: Comparison of full-duplex (left) and half-duplex (right) communication modes. In full-duplex, both devices can transmit and receive simultaneously on separate lines. In half-duplex, devices must take turns using the single shared line.*
-
 ### Serial IO (SIO) in Embedded Systems
 
 Serial IO is fundamental in embedded systems, particularly during early boot stages when other complex communication interfaces may not be initialized. SIO is commonly used for:
@@ -108,20 +90,8 @@ The dual SIO implementation uses a layered approach:
 To accommodate both communication modes, I designed a protocol with the following features:
 
 - **Dynamic mode detection**: Automatically detects whether the connected tester uses single or dual-bus communication
-- **Packet-based communication**: All messages are encapsulated in packets with headers and checksums
 - **Time division multiplexing**: In half-duplex mode, implemented timed windows for TX and RX to minimize collisions
 
-```
-// Packet Structure
-struct SIOPacket {
-    uint8_t startMarker;   // Always 0xAA
-    uint8_t packetType;    // Command, Response, or Error
-    uint8_t length;        // Length of payload
-    uint8_t payload[64];   // Variable length data
-    uint16_t checksum;     // CRC-16 of all preceding bytes
-    uint8_t endMarker;     // Always 0x55
-};
-```
 
 ### Collision Management
 
@@ -129,7 +99,7 @@ For half-duplex communication, collision detection and management were critical:
 
 - **Collision detection**: Monitoring the line during transmission to detect conflicts
 - **Backoff algorithm**: Implementing exponential backoff when collisions occur
-- **Priority mechanism**: Assigning different priorities to different types of messages
+
 
 The collision detection system monitors the transmitted data against what's received on the same line. If there's a mismatch, it indicates a collision with data from the other end of the connection.
 
@@ -179,17 +149,6 @@ The bootloader was modified to work with this dual-mode communication system:
 3. Based on the response, it configures the appropriate communication mode
 4. It then establishes a stable communication channel before proceeding with further operations
 
-```
-// Mode detection state machine
-enum DetectionState {
-    SEND_PROBE,
-    WAIT_RESPONSE,
-    ANALYZE_PATTERN,
-    CONFIGURE_MODE,
-    ESTABLISH_CHANNEL,
-    READY
-};
-```
 
 ### Mode-Specific Optimizations
 
@@ -204,41 +163,6 @@ The bootloader includes robust error recovery mechanisms:
 - **Resynchronization**: Re-establishes synchronization if packet boundaries are lost
 - **Fallback modes**: Gradually falls back to more reliable communication settings if errors persist
 
-```
-  +------------------+
-  | Normal Operation |<---------+
-  +------------------+          |
-           |                    |
-           | Error              |
-           v                    |
-  +------------------+          |
-  | Error Detection  |----------+
-  +------------------+    Success
-           |
-           |
-  +--------v-------+   +----------------+   +--------------+
-  | Timeout Handler|   |Resynchronization|   |Fallback Mode |
-  +----------------+   +----------------+   +--------------+
-           |                   |                   |
-           |                   |                   |
-           v                   v                   v
-  +------------------------------------+
-  |          Retry Attempt             |
-  +------------------------------------+
-           |            |
-           |            |
-     Success|            |Failure
-           |            |
-           v            v
-  +------------------+  |
-  | Normal Operation |  |
-  +------------------+  |
-                        v
-                 +-------------+
-                 | Error Detection |
-                 +-------------+
-```
-*Figure 4: State machine diagram showing error detection and recovery strategies implemented in the bootloader*
 
 ## Challenges and Solutions
 

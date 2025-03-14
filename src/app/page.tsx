@@ -107,7 +107,7 @@ export default function Home() {
       description: "Deep dive into the implementation of a Flash Writer program for embedded systems, focusing on secure boot sequence and memory management for multi-core boot systems.",
       category: "Firmware",
       technologies: ["Bootloader", "Flash Memory", "Secure Boot", "Multi-core Systems"],
-      externalLink: "/career/flash-writer-implementation",
+      externalLink: "/career/flash-writer-implementation-for-embedded-systems",
       featured: true,
       type: "career"
     },
