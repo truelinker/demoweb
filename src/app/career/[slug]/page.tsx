@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getMDXPostBySlug, getAllMDXSlugs } from '@/utils/mdxUtils';
+import Link from 'next/link';
+import { getMDXPostBySlug, getAllMDXSlugs, getMDXPostsByCategory } from '@/utils/mdxUtils';
 import dynamic from 'next/dynamic';
 
 // Use dynamic import for MDX content
@@ -53,16 +54,33 @@ export default async function CareerPostPage(props: {
   const slug = params.slug;
   
   const post = getMDXPostBySlug(slug);
-  
+
   if (!post || post.category !== 'career') {
     notFound();
   }
-  
+
+  // Compute prev/next posts
+  const allCareerPosts = getMDXPostsByCategory('career');
+  const currentIndex = allCareerPosts.findIndex(p => p.slug === slug);
+  const prevPost = currentIndex < allCareerPosts.length - 1 ? allCareerPosts[currentIndex + 1] : null;
+  const nextPost = currentIndex > 0 ? allCareerPosts[currentIndex - 1] : null;
+
   return (
     <div className="career-post-container">
       {/* Fixed position spacer that pushes content below the navigation bar */}
       <div className="h-[120px] w-full" aria-hidden="true"></div>
-      
+
+      {/* Breadcrumbs */}
+      <div className="container mx-auto px-4">
+        <nav className="flex items-center gap-2 font-mono text-xs text-[var(--slate)] max-w-4xl mx-auto pt-4">
+          <Link href="/" className="hover:text-[var(--green)] transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/career" className="hover:text-[var(--green)] transition-colors">Career</Link>
+          <span>/</span>
+          <span className="text-[var(--lightest-slate)] truncate max-w-[200px]">{post.title}</span>
+        </nav>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <article className="max-w-4xl mx-auto">
           <header className="mb-8">
@@ -87,9 +105,9 @@ export default async function CareerPostPage(props: {
               </div>
             )}
           </header>
-          
+
           <div className="prose prose-lg dark:prose-invert max-w-none career-content
-                        prose-headings:font-bold 
+                        prose-headings:font-bold
                         prose-headings:tracking-tight
                         prose-h1:text-3xl prose-h1:mt-10 prose-h1:mb-6
                         prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
@@ -106,6 +124,40 @@ export default async function CareerPostPage(props: {
             <MDXContent content={post.content} />
           </div>
         </article>
+
+        {/* Prev / Next navigation */}
+        <nav className="max-w-4xl mx-auto mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {prevPost ? (
+            <Link
+              href={`/career/${prevPost.slug}`}
+              className="p-4 rounded-lg bg-[var(--light-navy)] border border-[var(--lightest-navy)] hover:border-[var(--green)] transition-all no-underline group"
+            >
+              <span className="text-xs font-mono text-[var(--slate)] group-hover:text-[var(--green)] transition-colors">
+                &larr; Previous
+              </span>
+              <span className="block text-sm text-[var(--lightest-slate)] mt-1 truncate">
+                {prevPost.title}
+              </span>
+            </Link>
+          ) : (
+            <div />
+          )}
+          {nextPost ? (
+            <Link
+              href={`/career/${nextPost.slug}`}
+              className="p-4 rounded-lg bg-[var(--light-navy)] border border-[var(--lightest-navy)] hover:border-[var(--green)] transition-all no-underline group text-right"
+            >
+              <span className="text-xs font-mono text-[var(--slate)] group-hover:text-[var(--green)] transition-colors">
+                Next &rarr;
+              </span>
+              <span className="block text-sm text-[var(--lightest-slate)] mt-1 truncate">
+                {nextPost.title}
+              </span>
+            </Link>
+          ) : (
+            <div />
+          )}
+        </nav>
       </div>
     </div>
   );

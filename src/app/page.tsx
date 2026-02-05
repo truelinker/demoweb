@@ -2,24 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTheme } from '@/components/ThemeProvider';
-
-// Define types for company details
-type CompanyDetail = {
-  title: string;
-  company: string;
-  period: string;
-  duties: string[];
-};
-
-type CompanyDetails = {
-  greenWaveRadio: CompanyDetail;
-  westernDigital: CompanyDetail;
-  anyData: CompanyDetail;
-  dasanNetworks: CompanyDetail;
-};
-
-type CompanyKey = keyof CompanyDetails;
+import { companyDetails, companyOrder, type CompanyKey } from '@/data/careerData';
 
 // Define type for project details
 type ProjectDetail = {
@@ -32,6 +17,7 @@ type ProjectDetail = {
   externalLink: string;
   featured?: boolean;
   type?: 'career' | 'portfolio';
+  companyKey?: CompanyKey;
 };
 
 export default function Home() {
@@ -55,7 +41,8 @@ export default function Home() {
       technologies: ["ARM", "NEON SIMD", "Performance Optimization", "DSP"],
       externalLink: "/career/optimizing-dpd-algorithm-with-arm-neon-simd",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "greenWaveRadio"
     },
     {
       title: "Flash FileSystem",
@@ -64,7 +51,8 @@ export default function Home() {
       technologies: ["Azure RTOS", "ThreadX", "FileX/LevelX", "QSPI Flash"],
       externalLink: "/career/flash-filesystem",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "greenWaveRadio"
     },
     {
       title: "Secure Drive",
@@ -73,7 +61,8 @@ export default function Home() {
       technologies: ["TCG", "Sanitize", "ATA Security", "Secure Boot"],
       externalLink: "/career/secure-drive",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "westernDigital"
     },
     {
       title: "Shingled Magnetic Recording (SMR)",
@@ -82,7 +71,8 @@ export default function Home() {
       technologies: ["HDD Firmware", "SMR", "Sequential I/O", "Indirection Mapping"],
       externalLink: "/career/smr",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "westernDigital"
     },
     {
       title: "PCIe AHCI Device Driver Development",
@@ -91,7 +81,8 @@ export default function Home() {
       technologies: ["PCIe", "AHCI", "Device Drivers", "Storage Systems"],
       externalLink: "/career/pcie-ahci-device-driver-development",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "westernDigital"
     },
     {
       title: "Half-Duplex SIO Communication",
@@ -100,7 +91,8 @@ export default function Home() {
       technologies: ["Serial Communication", "Half-Duplex", "Protocol Design", "Error Handling"],
       externalLink: "/career/serial-communication",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "westernDigital"
     },
     {
       title: "Flash Writer Implementation",
@@ -109,7 +101,8 @@ export default function Home() {
       technologies: ["Bootloader", "Flash Memory", "Secure Boot", "Multi-core Systems"],
       externalLink: "/career/flash-writer-implementation-for-embedded-systems",
       featured: true,
-      type: "career"
+      type: "career",
+      companyKey: "greenWaveRadio"
     },
     // Add portfolio projects
     {
@@ -250,51 +243,10 @@ export default function Home() {
     }
   };
 
-  // Company job details
-  const companyDetails: CompanyDetails = {
-    greenWaveRadio: {
-      title: "Firmware Engineer",
-      company: "GreenWave Radio",
-      period: "2023 - Present",
-      duties: [
-        "Develop firmware for multi-core SoCs utilizing real-time operating systems.",
-        "Implement real-time algorithms for precise RF signal processing.",
-        "Design device drivers for GPIO, SPI, and PCIe peripheral interfaces.",
-        "Architect secure boot processes for multi-core system-on-chip platforms."
-      ]
-    },
-    westernDigital: {
-      title: "Firmware Engineer",
-      company: "Western Digital",
-      period: "2014 - 2023",
-      duties: [
-        "Developed security features implementing TCG, Sanitize, and ATA Security standards.",
-        "Designed secure boot firmware for HDD and SSD storage products.",
-        "Created unified security APIs across multiple storage platforms.",
-        "Led cross-functional teams integrating security features into storage solutions."
-      ]
-    },
-    anyData: {
-      title: "Embedded Software Engineer",
-      company: "AnyData",
-      period: "2012 - 2014",
-      duties: [
-        "Engineered over-the-air firmware update system for wireless modems.",
-        "Developed remote management system for modem monitoring and control."
-      ]
-    },
-    dasanNetworks: {
-      title: "Software Engineer",
-      company: "Dasan Networks",
-      period: "2008 - 2012",
-      duties: [
-        "Developed embedded software for network devices including routers and switches.",
-        "Implemented IPv6 protocol stack for next-generation networking equipment.",
-        "Created diagnostic tools for network troubleshooting and performance analysis.",
-        "Enhanced system reliability through automated testing and fault recovery mechanisms."
-      ]
-    }
-  };
+  // Derive projects for the active company
+  const companyProjects = useMemo(() => {
+    return featuredProjects.filter(p => p.companyKey === activeCompany);
+  }, [featuredProjects, activeCompany]);
 
   // Animation fade-in classes
   const fadeClass = (delay: number) => {
@@ -401,35 +353,71 @@ export default function Home() {
         <h2 className="section-heading">
           <span className="number">02.</span> Where I&apos;ve Worked
         </h2>
-        
-        <div className="grid md:grid-cols-[170px_1fr] gap-4">
-          {/* Job tabs */}
-          <div className="flex md:flex-col overflow-x-auto md:overflow-x-visible tabs-container mb-8 md:mb-0">
-            {Object.entries(companyDetails).map(([key, detail]) => (
-              <button
-                key={key}
-                className={`px-4 py-2 text-sm font-mono text-left border-b-2 md:border-b-0 md:border-l-2 ${
-                  activeCompany === key 
-                    ? 'text-[var(--green)] border-[var(--green)] bg-[var(--light-navy)]' 
-                    : 'text-[var(--slate)] border-[var(--lightest-navy)] hover:text-[var(--green)] hover:bg-[var(--light-navy)]'
-                } transition-all whitespace-nowrap`}
-                onClick={() => setActiveCompany(key as CompanyKey)}
-              >
-                {detail.company}
-              </button>
-            ))}
+
+        <div className="grid md:grid-cols-[200px_1fr] gap-6">
+          {/* Left column: Vertical timeline (desktop) / Horizontal tabs (mobile) */}
+          <div className="relative">
+            {/* Vertical line (desktop only) */}
+            <div className="hidden md:block absolute left-[7px] top-0 bottom-0 w-[2px] bg-[var(--lightest-navy)]" />
+
+            <div className="flex md:flex-col overflow-x-auto md:overflow-x-visible gap-1 pb-2 md:pb-0">
+              {companyOrder.slice().reverse().map((key) => {
+                const detail = companyDetails[key];
+                const isActive = activeCompany === key;
+                return (
+                  <button
+                    key={key}
+                    className={`flex items-center gap-3 px-3 py-3 text-sm font-mono text-left transition-all whitespace-nowrap rounded-r-md
+                      md:border-b-0 border-b-2 md:border-b-0
+                      ${isActive
+                        ? 'text-[var(--green)] bg-[var(--light-navy)] border-[var(--green)]'
+                        : 'text-[var(--slate)] border-[var(--lightest-navy)] hover:text-[var(--green)] hover:bg-[var(--light-navy)]'
+                      }`}
+                    onClick={() => setActiveCompany(key)}
+                  >
+                    {/* Timeline dot (desktop only) */}
+                    <span className={`hidden md:block flex-shrink-0 w-3 h-3 rounded-full border-2 transition-all
+                      ${isActive
+                        ? 'bg-[var(--green)] border-[var(--green)] timeline-dot-active'
+                        : 'bg-transparent border-[var(--slate)]'
+                      }`}
+                    />
+                    <span className="flex flex-col">
+                      <span>{detail.companyShort}</span>
+                      <span className="text-[10px] text-[var(--light-slate)]">
+                        {detail.yearStart}–{detail.yearEnd ?? 'Now'}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          
-          {/* Job details */}
-          <div className="min-h-[320px]">
+
+          {/* Right column: Detail panel */}
+          <div className="min-h-[420px]">
             <h3 className="text-xl text-[var(--lightest-slate)] mb-1">
               <span>{companyDetails[activeCompany].title}</span>
               <span className="text-[var(--green)]"> @ {companyDetails[activeCompany].company}</span>
             </h3>
-            <p className="font-mono text-xs text-[var(--light-slate)] mb-6">
+            <p className="font-mono text-xs text-[var(--light-slate)] mb-4">
               {companyDetails[activeCompany].period}
             </p>
-            <ul className="space-y-4">
+
+            {/* Tech stack badges */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              {companyDetails[activeCompany].techStack.map((tech) => (
+                <span
+                  key={tech}
+                  className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--green-tint)] text-[var(--green)]"
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
+
+            {/* Duties */}
+            <ul className="space-y-3 mb-6">
               {companyDetails[activeCompany].duties.map((duty, i) => (
                 <li key={i} className="text-[var(--slate)] flex items-start">
                   <span className="text-[var(--green)] mr-2 translate-y-1">▹</span>
@@ -437,6 +425,57 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+
+            {/* Key Achievements */}
+            {companyDetails[activeCompany].achievements.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-mono text-[var(--green)] mb-3 uppercase tracking-wider">Key Achievements</h4>
+                <ul className="space-y-2">
+                  {companyDetails[activeCompany].achievements.map((achievement, i) => (
+                    <li key={i} className="text-[var(--light-slate)] flex items-start text-sm">
+                      <span className="text-[var(--green)] mr-2 mt-0.5">★</span>
+                      <span>{achievement}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Related Projects */}
+            {companyProjects.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-mono text-[var(--green)] mb-3 uppercase tracking-wider">Related Projects</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {companyProjects.map((project) => (
+                    <Link
+                      key={project.title}
+                      href={project.externalLink}
+                      className="block p-3 rounded-md bg-[var(--light-navy)] border border-[var(--lightest-navy)] hover:border-[var(--green)] transition-all no-underline group"
+                    >
+                      <span className="text-sm text-[var(--lightest-slate)] group-hover:text-[var(--green)] transition-colors block mb-1">
+                        {project.title}
+                      </span>
+                      <span className="flex flex-wrap gap-1">
+                        {project.technologies.slice(0, 3).map((tech) => (
+                          <span key={tech} className="text-[10px] font-mono text-[var(--slate)] bg-[var(--lightest-navy)] px-1.5 py-0.5 rounded">
+                            {tech}
+                          </span>
+                        ))}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Link to full career page */}
+            <Link
+              href="/career"
+              className="inline-flex items-center gap-1 font-mono text-sm text-[var(--green)] hover:underline"
+            >
+              View full career timeline
+              <span aria-hidden="true">&rarr;</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -595,7 +634,7 @@ export default function Home() {
       {/* Contact Section */}
       <section id="contact" className="section py-20 text-center">
         <h2 className="section-heading justify-center">
-          <span className="number">04.</span> What&apos;s Next?
+          <span className="number">05.</span> What&apos;s Next?
         </h2>
         
         <h3 className="text-4xl text-[var(--lightest-slate)] mt-10 mb-4">Get In Touch</h3>

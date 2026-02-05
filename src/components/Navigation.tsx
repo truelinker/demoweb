@@ -103,6 +103,7 @@ export default function Navigation() {
     { name: 'About', path: '/#about' },
     { name: 'Experience', path: '/#experience' },
     { name: 'Work', path: '/#work' },
+    { name: 'Career', path: '/career' },
     { name: 'Contact', path: '/#contact' },
   ];
   
