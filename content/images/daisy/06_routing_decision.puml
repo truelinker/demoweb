@@ -1,0 +1,63 @@
+@startuml
+title Routing Decision Flowchart with Reference Counting
+
+start
+
+:Packet received in READY state;
+note right: ref_count=1 (allocated by RX)
+
+if (dest_addr == my_addr?) then (yes)
+  :Mark as LOCAL packet;
+  :Increment ref_count++;
+  note right: ref=2 (RX + CMD)
+
+  if (Also forward?) then (yes)
+    :BROADCAST mode;
+    :Increment ref_count++;
+    note right: ref=3 (RX + CMD + TX)
+
+    :Enqueue to TX queue;
+    :Enqueue to CMD queue;
+
+    :Wait for both consumers;
+    note right
+      TX task releases after DMA
+      CMD handler releases after processing
+    end note
+
+    if (ref_count == 0?) then (yes)
+      :Return slot to FREE;
+      stop
+    else (no)
+      :Keep waiting;
+      stop
+    endif
+
+  else (no)
+    :UNICAST to CMD;
+    :Enqueue to CMD queue;
+
+    :CMD handler processes;
+    :CMD releases ref_count--;
+    note right: ref=1→0
+
+    :Return slot to FREE;
+    stop
+  endif
+
+else (no)
+  :Mark as FORWARD packet;
+  :Increment ref_count++;
+  note right: ref=2 (RX + TX)
+
+  :Enqueue to TX queue;
+
+  :TX task transmits;
+  :TX releases ref_count--;
+  note right: ref=1→0
+
+  :Return slot to FREE;
+  stop
+endif
+
+@enduml

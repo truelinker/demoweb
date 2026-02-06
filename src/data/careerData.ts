@@ -95,8 +95,10 @@ export const companyDetails: Record<CompanyKey, CompanyDetail> = {
     achievements: [
       'Optimized DPD algorithm with NEON SIMD achieving 3x throughput improvement.',
       'Implemented secure multi-core boot sequence for 5G Radio Unit SoC.',
+      'Designed UART daisy chain architecture with SLIP framing and zero-copy forwarding for multi-node 5G systems.',
+      'Implemented CAST SPI-to-AHB bridge driver for FPGA register access with dual timing modes.',
     ],
-    techStack: ['C', 'ARM NEON', 'RTOS', 'ThreadX', 'DSP', 'PCIe', '5G'],
+    techStack: ['C', 'ARM NEON', 'RTOS', 'ThreadX', 'DSP', 'PCIe', '5G', 'UART', 'SPI'],
     color: '#64ffda',
   },
 };
@@ -106,6 +108,8 @@ export const projectCompanyMap: Record<string, CompanyKey> = {
   'optimizing-dpd-algorithm-with-arm-neon-simd': 'greenWaveRadio',
   'flash-filesystem': 'greenWaveRadio',
   'flash-writer-implementation-for-embedded-systems': 'greenWaveRadio',
+  'uart-daisy-chain': 'greenWaveRadio',
+  'cast-spi-device-driver': 'greenWaveRadio',
   'secure-drive': 'westernDigital',
   'smr': 'westernDigital',
   'pcie-ahci-device-driver-development': 'westernDigital',

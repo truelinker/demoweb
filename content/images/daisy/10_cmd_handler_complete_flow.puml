@@ -1,0 +1,118 @@
+@startuml
+title CMD Handler Complete Flow: Consumer + Producer Roles
+
+skinparam component {
+  BackgroundColor<<thread>> #E6F3FF
+  BackgroundColor<<queue>> #FFFFCC
+  BackgroundColor<<buffer>> #E8F5E9
+}
+
+package "Thread Layer" {
+  component "RX Task\n(Priority 5)\n**PRODUCER**" as RX <<thread>>
+  component "TX Task\n(Priority 6)\n**CONSUMER**" as TX <<thread>>
+  component "CMD Handler\n(Priority 8)\n**CONSUMER + PRODUCER**" as CMD <<thread>>
+}
+
+package "Queue Layer (108 bytes total)" {
+  queue "uart0_to_uart1_queue\n3 descriptors × 12B = 36B" as Q01 <<queue>>
+  queue "uart1_to_uart0_queue\n3 descriptors × 12B = 36B" as Q10 <<queue>>
+  queue "cmd_handler_queue\n3 descriptors × 12B = 36B" as Q_CMD <<queue>>
+}
+
+package "Buffer Pool (48KB total)" as BUFPOOL <<buffer>> {
+  database "RX Buffers\nUART0_RX + UART1_RX\n24KB (6×4KB slots)" as RXBUF
+  database "TX Buffers\nUART0_TX + UART1_TX\n24KB (6×4KB slots)" as TXBUF
+}
+
+' RX Task as Producer (original)
+RX -[#0000FF,bold]-> Q01 : **Enqueue**\n(forwarding)
+RX -[#0000FF,bold]-> Q10 : **Enqueue**\n(forwarding)
+RX -[#FF0000,bold]-> Q_CMD : **Enqueue**\n(local delivery)
+
+' TX Task as Consumer (original)
+Q01 -[#0000FF,bold]-> TX : **Dequeue**
+Q10 -[#0000FF,bold]-> TX : **Dequeue**
+
+' CMD Handler as CONSUMER (original)
+Q_CMD -[#FF0000,bold]-> CMD : **Dequeue**\n(command)
+
+' CMD Handler as PRODUCER (NEW!)
+CMD -[#00AA00,bold]-> Q01 : **Enqueue**\n(response to UART1)
+CMD -[#00AA00,bold]-> Q10 : **Enqueue**\n(response to UART0)
+
+' Buffer access
+RXBUF .[#666666].> RX : DMA write
+RXBUF .[#666666].> CMD : Read command
+TX .[#666666].> TXBUF : DMA read
+CMD .[#666666].> TXBUF : Allocate response
+
+note right of CMD #FFFFE0
+  **CMD Handler Dual Role:**
+
+  **CONSUMER:**
+  1. Dequeue from cmd_handler_queue
+  2. Read command from RX buffer
+  3. Extract SRC address from header
+  4. Determine source UART:
+     • rx_buffer == &uart0_rx_buffer?
+       → UART_SOURCE_UART0
+     • rx_buffer == &uart1_rx_buffer?
+       → UART_SOURCE_UART1
+  5. Process command (application logic)
+  6. Release RX buffer slot
+
+  **PRODUCER:**
+  7. Allocate TX buffer slot:
+     • UART_SOURCE_UART0 → uart0_tx_buffer
+     • UART_SOURCE_UART1 → uart1_tx_buffer
+  8. Construct response packet:
+     • Header: [Src=my_addr, Dst=cmd_src]
+     • Payload: [response_data]
+  9. Enqueue to TX queue:
+     • UART_SOURCE_UART0 → uart1_to_uart0_queue
+     • UART_SOURCE_UART1 → uart0_to_uart1_queue
+  10. TX Task transmits response
+
+  **Queue Selection Logic:**
+  Source UART0 → Response via UART0
+  Source UART1 → Response via UART1
+end note
+
+note left of Q01 #E0FFE0
+  **Shared Producer Pattern**
+
+  **uart0_to_uart1_queue**:
+  • RX Task (forwarding UART0→UART1)
+  • CMD Handler (responses to UART1)
+
+  **uart1_to_uart0_queue**:
+  • RX Task (forwarding UART1→UART0)
+  • CMD Handler (responses to UART0)
+
+  **No contention**: CMD Handler
+  enqueues much less frequently
+  than RX Task forwarding.
+
+  **Thread-safe**: ThreadX queues
+  provide automatic mutex protection.
+end note
+
+note bottom of BUFPOOL #FFE0E0
+  **Buffer Pool Separation**
+
+  **RX Buffers** (DMA-managed):
+  • UART0_RX: 12KB (3 slots)
+  • UART1_RX: 12KB (3 slots)
+  • Used for: Command reception
+
+  **TX Buffers** (SW-managed):
+  • UART0_TX: 12KB (3 slots)
+  • UART1_TX: 12KB (3 slots)
+  • Used for: Response transmission
+
+  **No cross-contamination**:
+  RX and TX use separate pools
+  to prevent buffer exhaustion.
+end note
+
+@enduml

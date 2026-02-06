@@ -1,0 +1,166 @@
+@startuml
+title H64 UART Daisy Chain: Complete System Data Flow\nBuffers → Descriptors → Queues → Tasks (Zero-Copy + Copy Paths)
+
+skinparam component {
+  BackgroundColor<<buffer>> #E8F5E9
+  BackgroundColor<<descriptor>> #FFF3E0
+  BackgroundColor<<queue>> #FFFFCC
+  BackgroundColor<<task>> #E3F2FD
+  BackgroundColor<<dma>> #FCE4EC
+}
+
+' ===== Physical Memory Layer =====
+package "Buffer Pool (52KB)" as BUFPOOL {
+  component "UART0_RX\n12KB\n(3 × 4128B slots)" as RX0 <<buffer>>
+  component "UART1_RX\n12KB\n(3 × 4128B slots)" as RX1 <<buffer>>
+  component "UART0_TX\n12KB\n(3 × 4128B slots)" as TX0 <<buffer>>
+  component "UART1_TX\n12KB\n(3 × 4128B slots)" as TX1 <<buffer>>
+  component "CMD Buffer\n4128B\n(single command)" as CMD <<buffer>>
+}
+
+' ===== Descriptor Abstraction Layer =====
+package "Descriptor Layer (10 bytes)" as DESCLAY {
+  component "**packet_descriptor_t**\nrx_slot (4B ptr)\nrx_buffer (4B ptr)\nlength (2B)" as DESC <<descriptor>>
+}
+
+' ===== Queue Communication Layer =====
+package "Queue Layer (168 bytes)" as QUEUELAY {
+  queue "uart0_to_uart1_queue\n3 desc × 12B = 36B" as Q01 <<queue>>
+  queue "uart1_to_uart0_queue\n3 desc × 12B = 36B" as Q10 <<queue>>
+  queue "cmd_handler_queue\n8 desc × 12B = 96B" as QCMD <<queue>>
+}
+
+' ===== Task Execution Layer =====
+package "Task Layer (ThreadX)" as TASKLAY {
+  component "RX Task\n(Priority 5)" as RXTASK <<task>>
+  component "TX Task\n(Priority 6)" as TXTASK <<task>>
+  component "CMD Task\n(Priority 8)" as CMDTASK <<task>>
+}
+
+' ===== DMA Hardware Layer =====
+package "DMA Layer (Hardware)" as DMALAY {
+  component "UART0_RX DMA\n(Channel 0)" as DMA0RX <<dma>>
+  component "UART1_RX DMA\n(Channel 2)" as DMA1RX <<dma>>
+  component "UART0_TX DMA\n(Channel 1)" as DMA0TX <<dma>>
+  component "UART1_TX DMA\n(Channel 3)" as DMA1TX <<dma>>
+}
+
+' ===== PHASE 1: DMA Reception → Buffer Slots =====
+DMA0RX -[#0000FF,bold]-> RX0 : **Phase 1**\nDMA writes\npacket (4128B)
+DMA1RX -[#0000FF,bold]-> RX1 : **Phase 1**\nDMA writes\npacket (4128B)
+
+' ===== PHASE 2: RX Task → Descriptor Creation (ZERO-COPY!) =====
+RX0 .[#00AA00,dashed].> DESC : **Phase 2**\nCreate descriptor\n(10B pointer)\n**No memcpy!**
+RX1 .[#00AA00,dashed].> DESC : **Phase 2**\nCreate descriptor\n(10B pointer)\n**No memcpy!**
+
+' ===== PHASE 3: Descriptor → Queue Enqueue =====
+DESC -[#FF6600,bold]-> Q01 : **Phase 3**\nEnqueue\n(12B aligned)
+DESC -[#FF6600,bold]-> Q10 : **Phase 3**\nEnqueue\n(12B aligned)
+DESC -[#FF6600,bold]-> QCMD : **Phase 3**\nEnqueue\n(12B aligned)
+
+' ===== PHASE 4: Queue → Task Dequeue =====
+Q01 -[#9C27B0,bold]-> TXTASK : **Phase 4**\nDequeue\n(TX wakes)
+Q10 -[#9C27B0,bold]-> TXTASK : **Phase 4**\nDequeue\n(TX wakes)
+QCMD -[#9C27B0,bold]-> CMDTASK : **Phase 4**\nDequeue\n(CMD wakes)
+
+' ===== PHASE 5A: TX Task → Buffer Access (ZERO-COPY READ) =====
+TXTASK .[#D32F2F,dashed].> RX0 : **Phase 5**\nDirect read\nvia rx_slot ptr\n**Zero-copy!**
+TXTASK .[#D32F2F,dashed].> RX1 : **Phase 5**\nDirect read\nvia rx_slot ptr\n**Zero-copy!**
+
+' ===== PHASE 5B: CMD Task → Copy Path =====
+CMDTASK -[#FF9800,bold]-> CMD : **Phase 5**\n**memcpy()**\n(frees RX slot)
+RX0 -[#FF9800,bold]-> CMD : Copy data\n(4128B)
+RX1 -[#FF9800,bold]-> CMD : Copy data\n(4128B)
+
+' ===== PHASE 6: TX Task → DMA Transmission Setup =====
+TXTASK -[#1976D2,bold]-> DMA0TX : **Phase 6**\nSetup DMA\nsource=rx_slot ptr
+TXTASK -[#1976D2,bold]-> DMA1TX : **Phase 6**\nSetup DMA\nsource=rx_slot ptr
+
+' ===== PHASE 7: DMA Reads from RX Slot =====
+DMA0TX .[#1976D2,dashed].> RX0 : **Phase 7**\nDMA reads from\nRX slot (zero-copy!)
+DMA1TX .[#1976D2,dashed].> RX1 : **Phase 7**\nDMA reads from\nRX slot (zero-copy!)
+
+' ===== Notes =====
+note left of DESC
+  **Descriptor Structure (10B)**
+  typedef struct {
+    packet_slot_t* rx_slot;    // 4B
+    uart_buffer_t* rx_buffer;  // 4B
+    uint16_t length;           // 2B
+  } packet_descriptor_t;
+
+  **Why Pointers?**
+  • 10B vs 4KB = 99.75% reduction
+  • Zero-copy: TX reads from RX slot
+  • Ref counting prevents premature reuse
+  • ThreadX pads to 12B for alignment
+end note
+
+note right of RXTASK
+  **RX Task (Producer)**
+  1. DMA ISR signals packet ready
+  2. Parse header: Dst, Src, Len
+  3. Routing decision:
+     • Broadcast → Forward + Local
+     • Unicast (me) → Local only
+     • Unicast (other) → Forward only
+  4. Create descriptor (rx_slot ptr)
+  5. Increment ref_count
+  6. Enqueue to appropriate queue(s)
+end note
+
+note right of TXTASK
+  **TX Task (Consumer)**
+  1. Dequeue descriptor from TX queue
+  2. Extract rx_slot pointer
+  3. Setup UART DMA:
+     • source = rx_slot->data
+     • length = desc.length
+  4. DMA transmits from RX slot
+  5. After DMA completion:
+     • buffer_release_slot()
+     • ref_count-- (freed if 0)
+end note
+
+note right of CMDTASK
+  **CMD Task (Consumer + Producer)**
+  **As CONSUMER:**
+  • Dequeue from cmd_handler_queue
+  • **memcpy() to CMD buffer (4128B)**
+  • Release RX slot immediately
+  • Process command (slow 1-50ms)
+
+  **As PRODUCER:**
+  • Allocate TX buffer for response
+  • Construct response packet
+  • Create descriptor
+  • Enqueue to TX queue
+end note
+
+note bottom of BUFPOOL
+  **Buffer Pool Architecture**
+  • Total: 52KB (48KB UART + 4128B CMD)
+  • Each UART direction: 12KB = 3 slots × 4128B
+  • Slot size: 4128B (4102B content + 26B DMA-230 alignment)
+  • Max packet: 4104B (START + HDR + 4096B + CRC + END)
+
+  **Synchronization:**
+  • TX_MUTEX (slot access control)
+  • TX_SEMAPHORE (slot counting, max=3)
+  • TX_EVENT_FLAGS (DMA interrupts)
+  • Reference counting for concurrent access
+end note
+
+note bottom of QUEUELAY
+  **Queue Efficiency**
+  • Total: 168B (36B + 36B + 96B)
+  • Can buffer refs to 12KB packets
+  • Depth: 3/3/8 (matches buffer pool)
+  • ThreadX TX_QUEUE with FIFO ordering
+
+  **Two Paths:**
+  • **Zero-copy** (solid dashed): RX→TX forwarding
+  • **Copy** (solid orange): RX→CMD processing
+end note
+
+@enduml

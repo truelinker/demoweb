@@ -1,0 +1,74 @@
+@startuml
+title Error Detection Points in Reception Pipeline
+
+start
+
+:FIFO threshold interrupt;
+
+:Scan FIFO for START (0xC0);
+
+if (START found?) then (yes)
+  #LightGreen:✅ Detection Point 1\nSTART delimiter found;
+else (no)
+  #Pink:❌ Error 1: No START\n**Recovery**: Discard FIFO;
+  stop
+endif
+
+:Read 4-byte header from FIFO;
+
+if (Header complete?) then (yes)
+  #LightGreen:✅ Detection Point 2\nHeader read complete;
+else (no)
+  #Pink:❌ Error 2: FIFO underrun\n**Recovery**: Wait next threshold;
+  stop
+endif
+
+:Parse packet length N;
+
+if (N ≤ 4096?) then (yes)
+  #LightGreen:✅ Detection Point 3\nValid packet length;
+else (no)
+  #Pink:❌ Error 3: Invalid length\n**Recovery**: Discard packet;
+  stop
+endif
+
+:Setup DMA for N+3 bytes\n(Payload + CRC + END);
+
+:DMA transfer from FIFO to buffer;
+
+:DMA complete interrupt;
+
+:Read CRC16 and END delimiter;
+
+if (CRC valid?) then (yes)
+  #LightGreen:✅ Detection Point 4\nCRC validation passed;
+else (no)
+  #Pink:❌ Error 4: CRC mismatch\n**Recovery**: Discard packet,\nincrement error counter;
+  stop
+endif
+
+if (END == 0xC0?) then (yes)
+  #LightGreen:✅ Detection Point 5\nEND delimiter valid;
+else (no)
+  #Pink:❌ Error 5: Missing END\n**Recovery**: Discard packet,\nFIFO resync;
+  stop
+endif
+
+:Parse destination address;
+
+if (Valid routing?) then (yes)
+  #LightGreen:✅ Detection Point 6\nRouting decision valid;
+else (no)
+  #Pink:❌ Error 6: Unknown dest\n**Recovery**: Discard packet,\nlog error;
+  stop
+endif
+
+:Mark slot as READY;
+
+:Signal RX task via TX_EVENT;
+
+#LightBlue:✅ Packet successfully received\nError rate: 0-5% (FIFO misalignment);
+
+stop
+
+@enduml

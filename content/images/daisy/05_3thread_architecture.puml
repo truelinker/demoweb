@@ -1,0 +1,51 @@
+@startuml
+title ThreadX 5-Thread Architecture: Circular Buffer Design with Indication Queue
+
+skinparam component {
+  BackgroundColor<<thread>> #E6F3FF
+  BackgroundColor<<buffer>> #FFFFCC
+  BackgroundColor<<queue>> #FFE6F0
+  BackgroundColor<<rf_thread>> #FFE6E6
+}
+
+package "Daisy Chain Tasks" {
+  component "Daisy_RX Task\n---\n**Duties:**\n- UART RX handling\n- Daisy chain receive" as D_RX <<thread>>
+  component "Daisy_TX Task\n---\n**Duties:**\n- UART TX handling\n- Daisy chain transmit" as D_TX <<thread>>
+  component "CMD Task\n---\n**Duties:**\n- JSON encode/decode\n- Generate indication msg" as CMD <<thread>>
+}
+
+package "RF Tasks" {
+  component "RX Task\n---\n**Duties:**\n- RX calibration\n- RX data processing" as RX <<rf_thread>>
+  component "TX Task\n---\n**Duties:**\n- TX calibration\n- TX data processing" as TX <<rf_thread>>
+}
+
+package "Buffer Pool (28.3KB Total)" {
+  component "UART0_Buffer: 12KB\n**Circular Ring Buffer**\nhead/tail pointers" as BUF0 <<buffer>>
+  component "UART1_Buffer: 12KB\n**Circular Ring Buffer**\nhead/tail pointers" as BUF1 <<buffer>>
+  component "CMD_Memory: 4.32KB\n(single buffer)\nCMD processing" as BUF_CMD <<buffer>>
+}
+
+package "Queues" {
+  component "TX_QUEUE\n4 queues total\n(144B combined)\n---\nFor TX data descriptors" as QUEUE <<queue>>
+  component "IND_QUEUE\n**Indication Queue**\n---\nFor indication descriptors\n(TX/RX status)" as IND_QUEUE <<queue>>
+}
+
+' DMA Interrupt Signals (Buffer → Task)
+BUF0 -[#0000FF]-> D_RX : **DMA RX ISR**\nUART0 Data ready
+BUF1 -[#0000FF]-> D_RX : **DMA RX ISR**\nUART1 Data ready
+
+' Zero-Copy Descriptor Passing (TX data path)
+D_RX -[#FF0000,bold]-> QUEUE : **Enqueue**\n12B descriptor
+QUEUE -[#FF0000,bold]-> D_TX : **Dequeue**\n12B descriptor
+
+' CMD Handler Processing
+D_RX -[#AA00AA]-> CMD : **Route descriptor**\nto CMD Handler
+CMD -[#AA00AA]-> BUF_CMD : **Serial processing**\nSLIP decode/encode
+CMD -[#AA00AA]-> QUEUE : **Enqueue**\nresponse descriptor
+
+' Indication Queue Flow (RF TX/RX tasks push status indications)
+TX -[#00AA00,dashed]-> IND_QUEUE : **Push**\nTX status descriptor\n(calibration result, etc.)
+RX -[#00AA00,dashed]-> IND_QUEUE : **Push**\nRX status descriptor\n(calibration result, etc.)
+
+
+@enduml

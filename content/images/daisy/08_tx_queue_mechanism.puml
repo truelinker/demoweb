@@ -1,0 +1,85 @@
+@startuml
+title TX_QUEUE Mechanism: Zero-Copy Descriptor Passing
+
+participant "RX Task" as RX
+queue "TX_QUEUE\n(uart0_to_uart1_queue)" as QUEUE
+participant "TX Task" as TX
+database "RX Buffer\n(UART0_RX Slot 2)" as RXBUF
+database "TX Buffer\n(UART1_TX Slot 0)" as TXBUF
+
+== Packet Reception Complete ==
+
+RX -> RX: Packet received in\nUART0_RX Slot 2
+RX -> RX: Routing decision:\nForward to UART1
+
+== Zero-Copy Descriptor Creation ==
+
+note over RX
+**packet_descriptor_t structure (10 bytes + 2B padding = 12 bytes):**
+• rx_slot (4B) - Pointer to RX slot
+• rx_buffer (4B) - Buffer pool owner (for ref counting)
+• length (2B) - Valid data length (5-4104 bytes)
+• (2B padding) - ThreadX alignment
+end note
+
+RX -> RX: Create descriptor:\n{rx_slot=&slot2,\nrx_buffer=&uart0_rx_buf,\nlength=1024}
+
+RX -> RXBUF: ref_count++\n(1→2)
+note right: Increment reference\nto prevent slot reuse
+
+== Enqueue to TX_QUEUE ==
+
+RX -> QUEUE: tx_queue_send(&desc, 12B)
+note right #LightBlue
+**Only 12 bytes sent!**
+Not 1024 bytes of data
+end note
+
+QUEUE -> QUEUE: Store descriptor\nin queue
+
+note over QUEUE
+**TX_QUEUE Properties:**
+• Queue depth: 16 descriptors
+• Message size: 12 bytes
+• Total memory: 192 bytes
+• ThreadX: TX_QUEUE primitive
+end note
+
+== TX Task Processing ==
+
+TX <- QUEUE: tx_queue_receive(&desc)
+note left: TX task wakes up\nfrom queue wait
+
+TX -> TX: Extract slot pointer:\nslot_ptr = desc.slot_ptr
+
+TX -> RXBUF: Direct memory access\nvia slot_ptr
+note right #LightYellow
+**Zero-Copy Benefit:**
+TX reads directly from RX buffer
+No memcpy() needed!
+end note
+
+TX -> TX: Setup UART1 DMA:\nsource = slot_ptr->data\nlength = desc.length
+
+TX -> TXBUF: DMA writes to\nUART1_TX Slot 0
+note right: Data transmitted\nto UART1
+
+== Cleanup ==
+
+TX -> RXBUF: release_slot()\nref_count--\n(2→1)
+note right: TX task releases\nreference
+
+RX -> RXBUF: release_slot()\nref_count--\n(1→0)
+note right: RX task releases\nreference
+
+RXBUF -> RXBUF: ref_count=0\nSlot returns to FREE
+
+note over RX, TXBUF
+**Key Advantages:**
+• 12B descriptor vs 1024B data = 99% bandwidth reduction
+• Zero memcpy() = CPU time saved
+• Reference counting = Safe concurrent access
+• Queue capacity: 16 descriptors = 16KB worth of packets buffered
+end note
+
+@enduml

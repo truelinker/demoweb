@@ -1,0 +1,110 @@
+---
+title: "UART Daisy Chain Architecture"
+subtitle: "Designing a Multi-Node UART Communication System on ThreadX RTOS"
+excerpt: "Architecture and implementation of a UART-based daisy chain communication system with SLIP framing, RTS/CTS flow control, and zero-copy forwarding using circular buffers and ThreadX primitives"
+date: 2025-01-05
+author: "Myung Guk Lee"
+draft: false
+series:
+  - Embedded Systems
+  - Communication Protocols
+tags:
+  - UART
+  - Daisy Chain
+  - ThreadX
+  - RTOS
+  - DMA
+  - SLIP Protocol
+  - ARM Cortex-R5F
+categories:
+  - Technical Projects
+layout: single
+---
+
+## Project Overview
+
+Designed and implemented a UART-based daisy chain communication system for a multi-core SoC platform running ThreadX RTOS on an ARM Cortex-R5F processor. The architecture features a 3-thread design (RX/TX/CMD), hardware RTS/CTS flow control, and zero-copy forwarding using circular buffers and ThreadX synchronization primitives (Mutex, Queue, Event Flags).
+
+### Architecture Highlights
+
+- **RTS/CTS Hardware Flow Control**: 16550D automatic flow control prevents FIFO overflow during multi-node forwarding
+![RTS/CTS Hardware Flow Control Timing](/images/daisy/10_rts_cts_timing.png)
+- **Circular Buffer with Mutex Protection**: 12KB ring buffers per UART with slot-level mutex locking for concurrent ISR/task access
+- **Zero-Copy Forwarding via Queue**: Buffer descriptor passing (12 bytes) through ThreadX queue instead of data copying (up to 4KB)
+- **RX/TX/CMD Thread Architecture**: Clean separation of concerns — RX handles reception and routing, TX handles transmission, CMD handles local processing
+
+## Daisy Chain Topology
+
+The system uses a linear daisy chain topology connecting multiple nodes:
+
+```
+Host(0) ──UART──> Node(1) ──UART──> Node(2) ──UART──> Node(3) ──UART──> Node(N)
+          960k         960k              960k              960k
+```
+
+Each node has two UART ports — one upstream (toward the host) and one downstream (toward the next node). Packets are forwarded hop-by-hop through the chain.
+
+## Thread Architecture
+
+The system employs a 3-thread architecture optimized for bidirectional traffic forwarding with local command processing.
+
+### Thread Overview
+
+- **Daisy RX Task** (Priority 5 — highest): Receives packets from UART0/1, performs routing decisions
+- **Daisy TX Task** (Priority 6): Transmits packets on UART0/1 via DMA
+- **CMD Task** (Priority 8): Processes packets destined for local node
+
+### Circular Buffer Architecture
+
+Each UART port uses a **circular ring buffer** divided into fixed-size slots, with mutex-protected allocation:
+
+- **UART0_Buffer** — 12KB ring buffer (3 x 4KB slots): Incoming packets from UART0
+- **UART1_Buffer** — 12KB ring buffer (3 x 4KB slots): Incoming packets from UART1
+- **CMD_Memory** — 4,320 bytes: Local command processing (RX decode + TX encode)
+
+### Zero-Copy Forwarding via Queue
+
+The key performance optimization: forwarded packets are **never copied**. The RX task passes a 12-byte buffer descriptor through a ThreadX queue to the TX task, which transmits directly from the original RX buffer slot using DMA.
+
+```
+RX Buffer Slot ──[descriptor via Queue]──> TX Task ──[DMA from same slot]──> UART TX
+     │                                                      │
+     └── Slot released after TX DMA completes ──────────────┘
+```
+
+### Thread Synchronization
+
+The architecture uses 7 ThreadX synchronization primitives:
+
+- **Mutex** (5): Buffer slot allocation (3) + DMA TX serialization (2)
+- **Event Flags Group** (1): ISR-to-Task signaling (DMA completion, CMD_READY)
+- **Queue** (1): TX task packet descriptor queue (depth = 3)
+
+**Complete wake chain for packet forwarding**:
+
+1. Packet arrives at UART0 FIFO → **FIFO ISR** fires at 8-byte threshold
+2. ISR acquires buffer mutex, allocates slot, configures DMA
+3. DMA completes → **DMA ISR** fires, sets event flag
+4. **RX Task** wakes on event flag, creates descriptor, sends to TX queue
+5. **TX Task** wakes on queue, acquires TX DMA mutex, configures DMA from RX buffer
+6. TX DMA completes → slot released back to ring buffer
+
+### CMD Task Congestion: Drop-if-Busy Strategy
+
+When the CMD Task is busy and a new local packet arrives, the packet is **dropped** rather than queued:
+
+```
+RX Task receives     CMD buffer        YES → Queue to CMD Task → CMD Task processes
+local packet    →  semaphore available?                            → Release semaphore
+                         │
+                         NO → DROP packet (log + counter)
+```
+
+**Rationale**:
+- Single CMD buffer designed for one command at a time
+- RX Task must never block — blocking would stop forwarding traffic for other nodes
+- Sender already uses timeout + retry, identical to handling UART packet loss
+
+## Conclusion
+
+The UART daisy chain architecture demonstrates how hardware flow control (RTS/CTS), circular buffers with mutex protection, and ThreadX queue-based zero-copy forwarding can be combined to build a reliable multi-node communication system. The 3-thread design cleanly separates reception, transmission, and local processing concerns, while the multi-layer flow control strategy prevents data loss across the chain.

@@ -1,0 +1,115 @@
+@startuml
+title Broadcast Packet: Reference Counting for Safe Zero-Copy
+
+participant "RX Task" as RX
+participant "TX_MUTEX" as MTX
+participant "Buffer Slot #1\n(4KB)" as Buffer
+participant "uart0→uart1\nQueue" as Q01
+participant "uart1→uart0\nQueue" as Q10
+participant "TX Task\n(UART0)" as TX0
+participant "TX Task\n(UART1)" as TX1
+
+== Broadcast Packet Reception ==
+
+RX -> Buffer: Receive packet\nDst=0xFF (broadcast)
+activate Buffer #lightblue
+note right of Buffer: Slot #1:\n[4KB broadcast packet]\nref_count = 1
+
+== RX Task: Increment ref_count for Both Outputs ==
+
+RX -> MTX: tx_mutex_get()
+MTX -> RX: SUCCESS
+
+RX -> Buffer: ref_count++\n(for UART0 output)
+note right of Buffer: ref_count: 1→2
+
+RX -> Buffer: ref_count++\n(for UART1 output)
+note right of Buffer: ref_count: 2→3
+
+RX -> MTX: tx_mutex_put()
+
+note over RX, Buffer
+**Critical Insight**: Single packet buffer shared
+by 3 consumers (RX + TX0 + TX1).
+Mutex protects ref_count from race conditions.
+end note
+
+== Enqueue to Both TX Queues ==
+
+RX -> Q01: tx_queue_send(&desc1)
+note right of Q01: desc1.rx_slot = &slot[1]
+
+RX -> Q10: tx_queue_send(&desc2)
+note right of Q10: desc2.rx_slot = &slot[1]\n**Same buffer!**
+
+note over Q01, Q10
+Both descriptors point to same buffer slot #1.
+**Zero-copy**: No data duplication.
+end note
+
+== TX Task (UART0) Transmits ==
+
+TX0 -> Q01: tx_queue_receive(&desc1)
+TX0 -> Buffer: Access slot[1].buffer
+note right of Buffer: **Zero-copy read**\nby TX0
+
+TX0 -> TX0: DMA transmission to UART0
+
+TX0 -> MTX: tx_mutex_get()
+TX0 -> Buffer: ref_count--
+note right of Buffer: ref_count: 3→2\n(TX0 released)
+
+alt ref_count > 0
+    TX0 -> Buffer: Keep allocated
+    note right of Buffer: Still in use by\nRX and TX1
+end
+
+TX0 -> MTX: tx_mutex_put()
+
+== TX Task (UART1) Transmits ==
+
+TX1 -> Q10: tx_queue_receive(&desc2)
+TX1 -> Buffer: Access slot[1].buffer
+note right of Buffer: **Zero-copy read**\nby TX1
+
+TX1 -> TX1: DMA transmission to UART1
+
+TX1 -> MTX: tx_mutex_get()
+TX1 -> Buffer: ref_count--
+note right of Buffer: ref_count: 2→1\n(TX1 released)
+
+alt ref_count > 0
+    TX1 -> Buffer: Keep allocated
+    note right of Buffer: Still owned by RX
+end
+
+TX1 -> MTX: tx_mutex_put()
+
+== RX Task Releases Original Reference ==
+
+RX -> MTX: tx_mutex_get()
+RX -> Buffer: ref_count--
+note right of Buffer: ref_count: 1→0\n(RX released)
+
+alt ref_count == 0
+    RX -> Buffer: slot[1].state = FREE
+    note right of Buffer: **Now available**\nfor reuse
+    deactivate Buffer
+end
+
+RX -> MTX: tx_mutex_put()
+
+note over RX, TX1
+**Performance Analysis**:
+- Single 4KB buffer serves 3 consumers
+- Without ref_count: 8KB waste (2× data copies)
+- With ref_count: **Zero waste**, zero memcpy()
+- Mutex overhead: ~3μs × 6 operations = **18μs total**
+- Bandwidth saved: **8KB** per broadcast packet
+
+**Safety Guarantee**:
+Mutex-protected ref_count ensures buffer only freed
+when **all consumers** finished. Prevents use-after-free.
+end note
+
+@enduml

@@ -1,0 +1,205 @@
+@startuml
+title Circular Buffer Architecture - Strict FIFO Order (No Gap Tracking)
+
+skinparam rectangle {
+  BackgroundColor<<buffer>> #E8F4F8
+  BackgroundColor<<metadata>> #FFF4E6
+  BackgroundColor<<packet>> #E8F8E8
+  BackgroundColor<<flow>> #F0F0F0
+}
+
+' Circular buffer representation
+rectangle "12KB Circular Ring Buffer" as ring <<buffer>> {
+
+  ' Represent circular nature with connected packets
+  rectangle "Physical Buffer Layout (Sequential)" as layout {
+    rectangle "Offset 0KB\n(Wraparound point)" as start
+    rectangle "PKT1\n1024B\nFWD" as pkt1 #lightgreen
+    rectangle "PKT2\n512B\nCMD" as pkt2 #yellow
+    rectangle "PKT3\n768B\nFWD" as pkt3 #lightblue
+    rectangle "FREE SPACE\n9764B" as free #white
+    rectangle "Offset 12KB\n(Buffer end)" as end_mark
+
+    start -down-> pkt1
+    pkt1 -down-> pkt2
+    pkt2 -down-> pkt3
+    pkt3 -down-> free
+    free -down-> end_mark
+    end_mark -[dashed]-> start : Wraps around
+  }
+
+  component "Head Pointer" as head #salmon {
+    [Points to: 2.3KB]
+    [Next allocation]
+  }
+
+  component "Tail Pointer" as tail #lightgreen {
+    [Points to: 0KB]
+    [Oldest packet: PKT1]
+  }
+
+  head -[#FF0000,dashed]-> free : Allocates here
+  tail -[#00AA00,dashed]-> pkt1 : Releases from here
+}
+
+note right of ring
+  **Strict FIFO Properties:**
+  • Tail advances sequentially: 0→1KB→1.5KB→...
+  • No out-of-order release
+  • No mid-buffer gaps created
+  • PKT2 waits for PKT1 completion
+  • 0% external fragmentation ✓
+end note
+
+' FIFO Metadata
+rectangle "FIFO Metadata Array[12]" as fifo_meta <<metadata>> {
+  rectangle "Entry[0]" as meta0 {
+    [Offset: 0KB]
+    [Length: 1024B]
+    [Type: FWD]
+    [Status: Transmitting]
+  }
+  rectangle "Entry[1]" as meta1 {
+    [Offset: 1KB]
+    [Length: 512B]
+    [Type: CMD]
+    [Status: Waiting]
+  }
+  rectangle "Entry[2]" as meta2 {
+    [Offset: 1.5KB]
+    [Length: 768B]
+    [Type: FWD]
+    [Status: Waiting]
+  }
+}
+
+note right of fifo_meta
+  **Logical FIFO Order:**
+  • RX Task processes Entry[0→N]
+  • Entry[i] must complete before Entry[i+1]
+  • Enforces strict sequential release
+  • Metadata tracks arrival order
+end note
+
+' Processing flow
+package "Strict FIFO Processing Timeline" as flow <<flow>> {
+  rectangle "T=0ms" as t0 {
+    [PKT1 arrives]
+    [Head: 0→1KB]
+    [Tail: 0KB]
+  }
+  rectangle "T=1ms" as t1 {
+    [PKT2 arrives]
+    [Head: 1KB→1.5KB]
+    [Tail: 0KB (unchanged)]
+  }
+  rectangle "T=2.3ms" as t2 {
+    [PKT1 forwarding complete]
+    [PKT1 RELEASED]
+    [Tail: 0KB→1KB ✓]
+  }
+  rectangle "T=2.3ms" as t3 {
+    [PKT2 processing starts]
+    [Waited for PKT1!]
+  }
+  rectangle "T=2.5ms" as t4 {
+    [PKT2 copied to CMD_Memory]
+    [PKT2 RELEASED]
+    [Tail: 1KB→1.5KB ✓]
+  }
+
+  t0 -down-> t1
+  t1 -down-> t2
+  t2 -down-> t3
+  t3 -down-> t4
+}
+
+note right of flow
+  **FIFO Constraint:**
+  PKT2 waits 2.3ms for PKT1
+  **Worst-case:** 6.9ms (3 FWD packets)
+  **Trade-off:** Simplicity > CMD latency
+end note
+
+' Wraparound scenario
+rectangle "Wraparound Handling (7.8% probability)" as wrap {
+  component "Condition" as wrap_cond {
+    [head + packet_size > 12KB]
+    [Packet spans buffer boundary]
+  }
+
+  component "Option A: Bounce Buffer" as bounce {
+    [DMA → 1KB bounce buffer]
+    [memcpy → circular (wrapped)]
+    [Overhead: +11μs]
+  }
+
+  component "Option B: Two-Stage DMA" as dma2 {
+    [DMA Stage 1: to buffer end]
+    [DMA Stage 2: from buffer start]
+    [Overhead: +2.5μs ✓]
+  }
+
+  wrap_cond -down-> bounce
+  wrap_cond -down-> dma2
+}
+
+note bottom of wrap
+  **Wraparound Stats:**
+  • Probability: 7.8% (958B avg / 12KB)
+  • Impact: +2.5μs (two-stage DMA)
+  • No gaps created (contiguous allocation)
+end note
+
+' Performance metrics
+rectangle "Corrected Performance Metrics" as metrics {
+  component "Memory" as mem {
+    [Utilization: 79%]
+    [Internal frag: 0%]
+    [External frag: 0% ✓]
+    [Capacity: 10-12 packets]
+  }
+
+  component "Latency" as lat {
+    [Allocation: 30μs avg]
+    [Wraparound: +2.5μs]
+    [Release: <5μs]
+    [Predictable: 30-50μs ✓]
+  }
+
+  component "Implementation" as impl {
+    [Complexity: ~300 LOC ✓]
+    [No compaction ✓]
+    [No gap tracking ✓]
+    [Simple head/tail]
+  }
+}
+
+note bottom of metrics
+  **Key Corrections:**
+  ❌ Before: 21% external fragmentation
+  ✅ After: 0% (strict FIFO, no gaps)
+
+  ❌ Before: 200μs worst-case (compaction)
+  ✅ After: 50μs (predictable, no spikes)
+
+  ❌ Before: ~550 LOC (gap tracking)
+  ✅ After: ~300 LOC (simplified)
+end note
+
+legend bottom
+**Strict FIFO Eliminates Complexity:**
+
+| Feature | Out-of-Order Release | Strict FIFO Order |
+|---------|---------------------|-------------------|
+| **External Fragmentation** | 21% gaps | **0% (no gaps)** ✓ |
+| **Gap Tracking** | Required (12 entries) | **Not needed** ✓ |
+| **Compaction** | Every 20-30 pkts (200μs) | **Never** ✓ |
+| **Implementation** | ~550 LOC | **~300 LOC** ✓ |
+| **Latency Variance** | 20× (10-200μs) | **1.7× (30-50μs)** ✓ |
+| **CMD Latency** | <500μs | **6.9ms max** ⚠️ |
+
+**Design Decision:** Accept CMD queuing delay (6.9ms << 100ms timeout) for simplified architecture
+endlegend
+
+@enduml

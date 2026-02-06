@@ -1,0 +1,118 @@
+@startuml
+title CMD Handler: Queue Selection Logic for Response Routing
+
+skinparam activityBackgroundColor #E6F3FF
+skinparam activityBorderColor #0066CC
+skinparam decisionBackgroundColor #FFFFCC
+skinparam decisionBorderColor #CC9900
+
+start
+
+:CMD Handler receives command\nfrom **cmd_handler_queue**;
+
+:Extract header fields:\n• **src_addr** (sender address)\n• **dst_addr** (my address)\n• **payload_len**;
+
+:Read command from **RX buffer slot**;
+
+partition "CONSUMER ROLE" {
+  :Process command\n(application logic);
+
+  :Generate response payload\n(if needed);
+
+  :Release **RX buffer slot**\n(ref_count--);
+}
+
+if (Response needed?) then (yes)
+
+  partition "PRODUCER ROLE" {
+
+    partition "Source UART Determination" {
+      :Check **rx_buffer** pointer\nfrom packet descriptor;
+
+      if (rx_buffer == &uart0_rx_buffer?) then (yes)
+        :source_uart = **UART_SOURCE_UART0**;
+        note right
+          Command received
+          from UART0
+        end note
+      elseif (rx_buffer == &uart1_rx_buffer?) then (yes)
+        :source_uart = **UART_SOURCE_UART1**;
+        note right
+          Command received
+          from UART1
+        end note
+      else (invalid)
+        :Log error: Invalid RX buffer;
+        stop
+      endif
+    }
+
+    partition "Response Path Selection" {
+      if (source_uart == UART_SOURCE_UART0?) then (yes)
+        :Select **UART0** response path:\n• tx_buffer = **&uart0_tx_buffer**\n• tx_queue = **&uart1_to_uart0_queue**;
+        note right
+          Response returns
+          via UART0
+        end note
+      else (UART_SOURCE_UART1)
+        :Select **UART1** response path:\n• tx_buffer = **&uart1_tx_buffer**\n• tx_queue = **&uart0_to_uart1_queue**;
+        note right
+          Response returns
+          via UART1
+        end note
+      endif
+    }
+
+    partition "Response Buffer Allocation" {
+      :Allocate **TX buffer slot**\nfrom selected tx_buffer;
+
+      if (Allocation succeeded?) then (yes)
+        :Construct response header:\n• Src = **my_node_address**\n• Dst = **src_addr** (sender)\n• Type = **PKT_TYPE_ACK**\n• Len = **response_len**;
+
+        :Write response payload\nto TX buffer slot;
+
+        :Enqueue descriptor\nto **tx_queue**;
+
+        if (Enqueue succeeded?) then (yes)
+          :Response sent to TX Task ✓;
+          note right
+            TX Task will transmit
+            response via selected UART
+          end note
+        else (queue full)
+          :Log error: TX queue full;
+          :Release TX buffer slot;
+          stop
+        endif
+
+      else (timeout)
+        :Log error: TX buffer allocation failed;
+        stop
+      endif
+    }
+  }
+
+else (no)
+  :No response needed;
+endif
+
+stop
+
+legend right
+  **Queue Selection Matrix:**
+  |= Source UART |= TX Buffer |= TX Queue |= Response Path |
+  | **UART0** | uart0_tx_buffer | uart1_to_uart0_queue | UART0 → FPGA |
+  | **UART1** | uart1_tx_buffer | uart0_to_uart1_queue | UART1 → H64₃ |
+
+  **Key Principle:**
+  Response must return via the same UART
+  that received the command to ensure
+  correct routing back to sender.
+
+  **Buffer Separation:**
+  • RX buffers: DMA-managed (reception)
+  • TX buffers: SW-managed (transmission)
+  • Prevents pool exhaustion under load
+endlegend
+
+@enduml

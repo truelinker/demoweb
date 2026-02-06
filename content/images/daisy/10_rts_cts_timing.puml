@@ -1,0 +1,31 @@
+@startuml
+title RTS/CTS Hardware Flow Control
+
+scale 3
+
+binary "RTS\n(H64 Receiver)" as RTS
+binary "CTS\n(Remote Transmitter)" as CTS
+
+@0
+RTS is low
+CTS is low
+note bottom of RTS : **LOW = Ready to receive**
+note bottom of CTS : **LOW = Continue transmission**
+
+@50
+RTS is high
+note bottom of RTS : **HIGH = FIFO full, stop sending**
+
+@60
+CTS is high
+note bottom of CTS : **HIGH = Suspend transmission**
+
+@100
+RTS is low
+note bottom of RTS : **LOW = Ready to receive**
+
+@110
+CTS is low
+note bottom of CTS : **LOW = Continue transmission**
+
+@enduml

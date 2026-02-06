@@ -1,0 +1,41 @@
+@startuml
+title Single Reception Path: FIFO ISR + DMA Coordination (460μs for 32B Packet)
+
+participant "UART HW" as UART
+participant "FIFO (16B)" as FIFO
+participant "FIFO ISR" as FISR
+participant "DMA Ctrl" as DMA
+participant "DMA ISR" as DISR
+participant "RX Task" as RX
+
+note over UART,RX: t=0μs
+
+UART -> FIFO: Bytes arrive\n(8 bytes buffered)
+FIFO -> FISR: Threshold interrupt
+
+note over FISR: t=3μs
+FISR -> FISR: Scan for 0xC0\n(3μs)
+
+FISR -> FIFO: Read 4B header
+FIFO --> FISR: Header data
+
+note over FISR: t=11μs
+FISR -> FISR: Parse & validate\n(3μs)
+
+FISR -> DMA: Setup DMA\n(N+3 bytes)
+
+UART -> FIFO: Payload arrives
+
+note over DMA,FIFO: t=375μs
+DMA -> FIFO: Transfer\n(364μs, 35B)
+
+note over DISR: t=460μs
+DMA -> DISR: Complete interrupt
+
+DISR -> DISR: Validate CRC\n(6μs)
+DISR -> DISR: Check END\n(1μs)
+
+DISR -> RX: Signal event\n(TX_EVENT)
+RX <-- RX: Wakeup
+
+@enduml

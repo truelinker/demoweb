@@ -1,0 +1,102 @@
+@startuml
+title Command-Response Flow: FPGA → H64₂ → FPGA (Complete Round-Trip)
+
+actor FPGA
+participant "UART0 RX\n(H64₂)" as UART0_RX
+participant "RX Task\n(Priority 5)" as RX_Task
+participant "cmd_handler_queue\n(depth=3)" as CMD_Q
+participant "CMD Handler\n(Priority 8)" as CMD_Handler
+participant "uart1_to_uart0_queue\n(depth=3)" as TX_Q
+participant "TX Task\n(Priority 6)" as TX_Task
+participant "UART0 TX\n(H64₂)" as UART0_TX
+database "UART0_RX_BUFFER\n(12KB)" as RX_BUF
+database "UART0_TX_BUFFER\n(12KB)" as TX_BUF
+
+== COMMAND RECEPTION (CMD Handler as CONSUMER) ==
+
+FPGA -> UART0_RX: Transmit command\n[Src=0x0, Dst=0x2, Type=CMD, Payload]
+activate UART0_RX
+UART0_RX -> RX_BUF: DMA writes to slot_0
+deactivate UART0_RX
+RX_BUF -> RX_Task: DMA completion ISR\n(notify RX Task)
+activate RX_Task
+
+RX_Task -> RX_BUF: Parse header from slot_0
+RX_BUF --> RX_Task: [Dst=0x2, Src=0x0, Len=32]
+
+RX_Task -> RX_Task: Check destination:\nDst=0x2 == my_addr(0x2) ✓
+
+RX_Task -> CMD_Q: Enqueue descriptor:\n{rx_slot=slot_0, rx_buffer=&uart0_rx_buffer}
+deactivate RX_Task
+
+CMD_Q -> CMD_Handler: Dequeue (wakeup)
+activate CMD_Handler
+
+CMD_Handler -> RX_BUF: Read command payload from slot_0
+RX_BUF --> CMD_Handler: [command_data]
+
+CMD_Handler -> CMD_Handler: Extract header fields:\n• src_addr = 0x0 (FPGA)\n• dst_addr = 0x2 (me)\n• payload_len = 32
+
+CMD_Handler -> CMD_Handler: Determine source UART:\nrx_buffer == &uart0_rx_buffer\n→ UART_SOURCE_UART0
+
+CMD_Handler -> CMD_Handler: Process command:\nprocess_command_and_generate_response()
+
+CMD_Handler -> RX_BUF: Release slot_0 (ref_count--)
+deactivate CMD_Handler
+
+== RESPONSE GENERATION (CMD Handler as PRODUCER) ==
+
+activate CMD_Handler
+CMD_Handler -> CMD_Handler: Select response path:\nUART_SOURCE_UART0\n→ tx_buffer = &uart0_tx_buffer\n→ tx_queue = &uart1_to_uart0_queue
+
+CMD_Handler -> TX_BUF: Allocate slot (wait 10ms)
+TX_BUF --> CMD_Handler: slot_1 allocated
+
+CMD_Handler -> CMD_Handler: Construct response header:\n• Src = 0x2 (me)\n• Dst = 0x0 (FPGA)\n• Type = PKT_TYPE_ACK\n• Len = 16
+
+CMD_Handler -> TX_BUF: Write response to slot_1:\n[Header + response_payload]
+
+CMD_Handler -> TX_Q: Enqueue descriptor:\n{rx_slot=slot_1, rx_buffer=&uart0_tx_buffer}
+deactivate CMD_Handler
+
+TX_Q -> TX_Task: Dequeue (wakeup)
+activate TX_Task
+
+TX_Task -> TX_BUF: Read response from slot_1
+TX_BUF --> TX_Task: [response_packet]
+
+TX_Task -> UART0_TX: DMA transmit from slot_1
+activate UART0_TX
+UART0_TX -> FPGA: Transmit response\n[Src=0x2, Dst=0x0, Type=ACK]
+deactivate UART0_TX
+
+TX_Task -> TX_BUF: Release slot_1 (ref_count--)
+deactivate TX_Task
+
+FPGA -> FPGA: Receive response\n(command-response complete)
+
+== PERFORMANCE METRICS ==
+
+note over FPGA, TX_BUF
+  **Round-Trip Time (RTT):**
+  1. Command RX: T=0ms
+  2. DMA completion: T=0.5ms
+  3. RX Task routing: T=0.6ms
+  4. CMD processing: T=2.0ms (typical)
+  5. Response TX: T=2.7ms
+  6. **Total: ~3.2ms (fast command)**
+
+  **Key Latencies:**
+  • RX DMA: ~0.5ms
+  • RX routing: ~0.1ms
+  • Command processing: 1-50ms (app-dependent)
+  • Response construction: ~0.1ms
+  • TX DMA: ~0.5ms
+
+  **Buffer Lifecycle:**
+  • RX slot_0: Allocated → Processed → Released
+  • TX slot_1: Allocated → Transmitted → Released
+  • Separate pools prevent contention
+end note
+
+@enduml

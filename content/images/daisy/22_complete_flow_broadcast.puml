@@ -1,0 +1,342 @@
+@startuml
+title Complete System Flow: Broadcast Packet (Reference Counting for Zero-Copy)
+
+!define SLEEPING #lightgray
+!define RUNNING #lightgreen
+!define BLOCKED #lightyellow
+
+participant "UART0 FIFO\n(Hardware)" as UART0
+participant "DMA-230" as DMA
+participant "DMA ISR" as ISR
+participant "TX_EVENT_FLAGS\n(uart_rx_events)" as EVT #lightblue
+participant "RX Task\n(Priority 5)" as RXTask
+participant "TX_MUTEX\n(uart0_rx_mutex)" as MTX0 #orange
+participant "RX Buffer Pool\n**Shared Slot #2**" as BUF0
+participant "TX_QUEUE\n(uart0_to_uart1)" as Q01 #pink
+participant "TX_QUEUE\n(cmd_handler_queue)" as CMDQ #pink
+participant "TX Task\n(Priority 6)" as TXTask
+participant "CMD Handler\n(Priority 8)" as CMDTask
+participant "TX_MUTEX\n(uart1_dma_tx_mutex)" as MTX1 #orange
+participant "UART1_TX FIFO" as UART1
+
+note over RXTask: SLEEPING SLEEPING
+note over TXTask: SLEEPING SLEEPING
+note over CMDTask: SLEEPING SLEEPING
+
+== 0μs: Broadcast Packet Arrives ==
+
+UART0 -> DMA: Broadcast packet (512B)
+activate UART0 #lightblue
+note right of UART0: **Broadcast**:\ndest_addr = 0xFF
+
+DMA -> DMA: Copy FIFO → RX Buffer
+activate DMA #lightgreen
+note right of DMA: DMA transfer:\n~400μs @960kbps
+
+== 400μs: DMA Complete ==
+
+DMA -> ISR: DMA complete interrupt
+activate ISR #lightgreen
+ISR -> EVT: tx_event_flags_set(\nUART0_RX_READY)
+EVT -> RXTask: Wake up signal
+deactivate ISR
+deactivate DMA
+
+== 410μs: RX Task Wakes Up ==
+
+activate RXTask RUNNING
+note over RXTask: State: READY → RUNNING RUNNING
+
+RXTask -> EVT: tx_event_flags_get()
+EVT -> RXTask: UART0_RX_READY
+
+== 415μs: RX Task Parses Header ==
+
+RXTask -> RXTask: Parse header:
+note right of RXTask
+**Header Analysis**:
+- dest_addr = **0xFF**
+- **BROADCAST FLAG!**
+
+**Routing Decision**:
+1. Forward to UART1
+2. Process locally (CMD)
+3. **Need 2 consumers!**
+end note
+
+== 420μs: RX Task Allocates Buffer (ref_count=1) ==
+
+RXTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+note right of MTX0: **Critical Section**:\nProtecting ref_count
+
+RXTask -> BUF0: Find free slot
+activate BUF0 #lightblue
+note right of BUF0: **Slot #2**:\nstate = FREE → IN_USE\n**ref_count = 1**
+
+== 425μs: RX Task Increments ref_count for TX Forwarding ==
+
+RXTask -> BUF0: ref_count++\n(for UART1 TX)
+note right of BUF0: **ref_count: 1 → 2**\n(RX + TX forwarding)
+
+note over RXTask, BUF0
+**Key Insight**: Incrementing ref_count BEFORE
+queuing ensures TX Task won't free buffer
+prematurely if it processes faster than RX.
+end note
+
+== 430μs: RX Task Increments ref_count for CMD Processing ==
+
+RXTask -> BUF0: ref_count++\n(for CMD Handler)
+note right of BUF0: **ref_count: 2 → 3**\n(RX + TX + CMD)
+
+note over BUF0
+**Three Consumers**:
+1. RX Task (original owner)
+2. TX Task (forward to UART1)
+3. CMD Handler (local processing)
+
+**Zero-Copy Benefit**:
+Single 512B buffer shared by 3 tasks.
+Without ref_count: 1024B wasted (2× memcpy).
+end note
+
+RXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+note right of MTX0: **Mutex released**:\nref_count = 3 locked in
+
+== 440μs: RX Task Creates Descriptors ==
+
+RXTask -> RXTask: Create TX descriptor:
+note right of RXTask
+**tx_descriptor_t**:
+- rx_slot = &slot[2]
+- rx_buffer = &uart0_rx_buffer
+- length = 512
+- **Same buffer pointer!**
+end note
+
+RXTask -> RXTask: Create CMD descriptor:
+note right of RXTask
+**cmd_descriptor_t**:
+- rx_slot = &slot[2]
+- cmd_type = BROADCAST_MSG
+- length = 512
+- **Same buffer pointer!**
+end note
+
+== 450μs: RX Task Enqueues to Both Queues ==
+
+RXTask -> Q01: tx_queue_send(\n&tx_desc, TX_NO_WAIT)
+activate Q01 #pink
+note right of Q01: **Forwarding queue**:\n0 → 1 message
+
+Q01 -> TXTask: Wake up signal
+note right of TXTask: State: SLEEPING → READY RUNNING
+
+RXTask -> CMDQ: tx_queue_send(\n&cmd_desc, TX_NO_WAIT)
+activate CMDQ #pink
+note right of CMDQ: **CMD queue**:\n0 → 1 message
+
+CMDQ -> CMDTask: Wake up signal
+note right of CMDTask: State: SLEEPING → READY RUNNING
+
+deactivate RXTask
+note over RXTask: State: RUNNING → SLEEPING SLEEPING\n**ref_count = 3**\n(still owns slot #2)
+
+== 460μs: TX Task Wakes Up (Higher Priority) ==
+
+activate TXTask RUNNING
+note over TXTask: State: READY → RUNNING RUNNING\n**Priority 6** runs first
+
+TXTask -> Q01: tx_queue_receive()
+Q01 -> TXTask: TX descriptor
+note right of TXTask: desc.rx_slot = &slot[2]\nlength = 512
+
+deactivate Q01
+
+== 470μs: TX Task Configures DMA ==
+
+TXTask -> MTX1: tx_mutex_get()
+activate MTX1 #orange
+
+TXTask -> BUF0: Access slot[2].buffer
+note right of BUF0: **Zero-copy read**:\nTX accesses same\nbuffer as RX
+
+TXTask -> DMA: Configure DMA:
+activate DMA #lightgreen
+note right of DMA
+**DMA Config**:
+Source: slot[2].buffer
+Dest: UART1_TX FIFO
+Size: 512 bytes
+end note
+
+TXTask -> DMA: Start transmission
+
+TXTask -> MTX1: tx_mutex_put()
+deactivate MTX1
+
+TXTask -> TXTask: Block on semaphore
+note over TXTask: State: RUNNING → BLOCKED BLOCKED
+
+deactivate TXTask
+
+== 490μs: DMA Transfers to UART1 ==
+
+DMA -> UART1: Transfer to UART1 FIFO
+activate UART1 #lightgreen
+note right of UART1: Forwarding to\nnext node
+
+note over DMA, UART1: DMA transfer:\n~4ms @960kbps\n(512 bytes)
+
+== 500μs: CMD Handler Wakes Up (Lower Priority) ==
+
+activate CMDTask RUNNING
+note over CMDTask: State: READY → RUNNING RUNNING\n**Priority 8** runs after TX\n(if CPU available)
+
+CMDTask -> CMDQ: tx_queue_receive()
+CMDQ -> CMDTask: CMD descriptor
+note right of CMDTask: desc.rx_slot = &slot[2]\ncmd_type = BROADCAST
+
+deactivate CMDQ
+
+== 510μs: CMD Handler Reads Same Buffer ==
+
+CMDTask -> BUF0: Read slot[2].buffer
+note right of BUF0: **Zero-copy read**:\nCMD accesses **SAME**\nbuffer as TX
+
+note over BUF0
+**Critical Observation**:
+While TX Task is DMA-transferring
+from slot[2], CMD Handler can
+**simultaneously READ** the same
+buffer because DMA and CPU
+operations are concurrent!
+
+**No conflict** because:
+- Both are READ operations
+- No writes to buffer after allocation
+- ref_count prevents premature free
+end note
+
+CMDTask -> CMDTask: Process broadcast
+note right of CMDTask: Processing:\n1-10ms\n(depends on command)
+
+note over CMDTask: Processing time:\n**2ms** assumed
+
+== 2510μs: CMD Handler Completes ==
+
+CMDTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+
+CMDTask -> BUF0: slot[2].ref_count--
+note right of BUF0: **ref_count: 3 → 2**\n(CMD released)
+
+alt ref_count > 0
+    CMDTask -> BUF0: Keep allocated
+    note right of BUF0: Still in use by\nRX and TX
+end
+
+CMDTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+
+deactivate CMDTask
+note over CMDTask: State: RUNNING → SLEEPING SLEEPING
+
+== 4490μs: DMA TX Complete ==
+
+DMA -> TXTask: DMA complete interrupt
+note right of TXTask: State: BLOCKED → READY RUNNING
+
+activate TXTask RUNNING
+deactivate DMA
+deactivate UART1
+
+== 4500μs: TX Task Releases Buffer ==
+
+TXTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+
+TXTask -> BUF0: slot[2].ref_count--
+note right of BUF0: **ref_count: 2 → 1**\n(TX released)
+
+alt ref_count > 0
+    TXTask -> BUF0: Keep allocated
+    note right of BUF0: Still owned by RX
+end
+
+TXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+
+deactivate TXTask
+note over TXTask: State: RUNNING → SLEEPING SLEEPING
+
+== 4510μs: RX Task Releases Final Reference ==
+
+note over RXTask: RX Task releases its\nreference when it\nneeds the slot again\n(or via cleanup timer)
+
+activate RXTask RUNNING
+RXTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+
+RXTask -> BUF0: slot[2].ref_count--
+note right of BUF0: **ref_count: 1 → 0**\n(RX released)
+
+alt ref_count == 0
+    RXTask -> BUF0: slot[2].state = FREE
+    deactivate BUF0
+    note right of BUF0: **Slot #2 available**\nfor reuse
+end
+
+RXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+
+deactivate RXTask
+deactivate UART0
+
+== Final State: All Tasks Sleeping ==
+
+note over RXTask, CMDTask
+**Broadcast Processing Complete**: ~4510μs (~4.5ms)
+
+**Time Breakdown**:
+- DMA RX transfer: 400μs (512B)
+- RX Task: 50μs (parse + allocate + queue × 2)
+- TX Task DMA config: 20μs
+- DMA TX transfer: 4000μs (512B to UART1)
+- CMD processing: 2000μs (parallel with DMA!)
+- Cleanup: 30μs
+
+**Reference Counting Lifecycle**:
+```
+Time    | ref_count | Consumers
+--------|-----------|---------------------------
+420μs   | 1         | RX
+425μs   | 2         | RX, TX
+430μs   | 3         | RX, TX, CMD
+2510μs  | 2         | RX, TX (CMD released)
+4500μs  | 1         | RX (TX released)
+4510μs  | 0         | (All released → FREE)
+```
+
+**Zero-Copy Performance**:
+- Without ref_count: 1024B waste (2× 512B memcpy)
+- With ref_count: **0B waste**, **0 memcpy()**
+- Mutex overhead: ~3μs × 8 operations = **24μs**
+- **Bandwidth saved**: 1024 bytes per broadcast
+
+**Concurrency Benefit**:
+- CMD processing (2ms) **overlaps** with DMA TX (4ms)
+- If sequential: 400 + 50 + 4000 + 2000 = **6450μs**
+- With parallelism: **4510μs** → **30% time savings!**
+
+**Safety Guarantee**:
+- Mutex-protected ref_count ensures buffer **NEVER freed**
+  while any consumer is using it
+- Prevents **use-after-free** race conditions
+- Each consumer decrements ref_count exactly once
+- Buffer freed only when **ALL consumers finished**
+end note
+
+@enduml

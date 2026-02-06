@@ -104,6 +104,26 @@ export default function Home() {
       type: "career",
       companyKey: "greenWaveRadio"
     },
+    {
+      title: "UART Daisy Chain Architecture",
+      description: "Architecture and implementation of a UART-based daisy chain communication system for multi-core H64 SoC with SLIP framing, DMA transfers, and zero-copy forwarding on ThreadX RTOS.",
+      category: "Communication",
+      technologies: ["UART", "SLIP Protocol", "ThreadX", "DMA"],
+      externalLink: "/career/uart-daisy-chain",
+      featured: true,
+      type: "career",
+      companyKey: "greenWaveRadio"
+    },
+    {
+      title: "CAST SPI Device Driver",
+      description: "SPI device drivers for CAST SPI-to-AHB bridge and 25LC020 EEPROM with predictable/unpredictable timing modes for FPGA register access on embedded SoC.",
+      category: "Driver",
+      technologies: ["SPI", "Device Driver", "CAST", "EEPROM"],
+      externalLink: "/career/cast-spi-device-driver",
+      featured: true,
+      type: "career",
+      companyKey: "greenWaveRadio"
+    },
     // Add portfolio projects
     {
       title: "Word Memorization App",

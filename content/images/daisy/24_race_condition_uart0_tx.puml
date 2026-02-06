@@ -1,0 +1,86 @@
+@startuml
+title Race Condition: TX Task vs CMD Task (Without uart0_dma_tx_mutex)
+
+participant "TX Task\n(Priority 6)" as TX
+participant "DMA Channel 2\n(UART0_TX)" as DMA
+participant "CMD Task\n(Priority 8)" as CMD
+participant "UART0 TX FIFO" as UART0
+
+== Without Mutex Protection - CORRUPTION SCENARIO ==
+
+note over TX, CMD #lightblue
+**Scenario**: TX Task forwards packet while CMD Task sends response
+Both tasks attempt to configure same DMA channel simultaneously
+end note
+
+TX -> TX: Dequeue forward descriptor
+activate TX #lightgreen
+note right: UART0_Buffer[slot#5]\nLength: 128 bytes
+
+TX -> DMA: Write SRC_ADDR = 0x20008000
+note right of DMA: Register write 1/4\nSource: UART0_Buffer[slot#5]
+
+TX -> DMA: Write DEST_ADDR = 0x40001000
+note right of DMA: Register write 2/4\nDest: UART0 TX FIFO
+
+note over CMD: CMD processing complete!\nResponse ready in CMD_Pool
+CMD -> CMD: Dequeue response descriptor
+activate CMD #orange
+note left: CMD_Pool[slot#0]\nLength: 4096 bytes\n**Priority 8 > Priority 6**
+
+CMD -> TX: !! PREEMPTS TX Task !!
+deactivate TX
+
+CMD -> DMA: Write SRC_ADDR = 0x20010000
+note right of DMA #FFCCCC: **!! OVERWRITES TX config !!**\nSource: CMD_Pool[slot#0]
+
+CMD -> DMA: Write DEST_ADDR = 0x40001000
+note right of DMA: Dest: UART0 TX FIFO\n(same destination)
+
+CMD -> DMA: Write COUNT = 4096
+note right of DMA #FFCCCC: **!! Wrong length !!**\n4096 bytes instead of 128
+
+CMD -> DMA: Write CTRL = START
+note right of DMA: Starts corrupted transfer
+
+DMA -> UART0: Transfer 4096 bytes from CMD_Pool
+activate UART0 #red
+note right #FFCCCC: **DATA CORRUPTION**:\n✗ Wrong source buffer\n✗ Wrong transfer length\n✗ TX Task packet lost
+
+deactivate CMD
+note left of CMD: CMD Task releases,\nreturns to sleep
+
+activate TX #lightgreen
+note over TX: TX Task RESUMES\n(too late - DMA already running)
+
+TX -> DMA: Write COUNT = 128
+note right of DMA #FFCCCC: TOO LATE - ignored\nDMA already active
+
+TX -> DMA: Write CTRL = START
+note right of DMA #FFCCCC: **FAILS** - channel busy
+
+deactivate TX
+deactivate UART0
+
+note over TX, UART0 #FFCCCC
+**FAILURE MODES**:
+1. **Buffer Corruption**: DMA transmits CMD_Pool data instead of UART0_Buffer
+2. **Length Mismatch**: Transmits 4096 bytes instead of 128 bytes
+3. **Packet Loss**: TX Task's forward packet never transmitted
+4. **Silent Failure**: No immediate hardware error detection
+5. **Undefined Behavior**: Reading beyond buffer boundaries
+
+**ROOT CAUSE**: DMA-230 has NO hardware queueing or shadow registers.
+Only ONE transfer can be configured per channel at a time.
+The 4-register configuration sequence is NON-ATOMIC.
+
+**HARDWARE CONSTRAINT**: DMA Channel 2 register map:
+- 0x40020020: SRC_ADDR   (32-bit)
+- 0x40020024: DEST_ADDR  (32-bit)
+- 0x40020028: COUNT      (32-bit)
+- 0x4002002C: CTRL       (32-bit, START bit)
+
+Without mutex protection, preemption can occur between ANY register write.
+end note
+
+@enduml

@@ -1,0 +1,123 @@
+@startuml
+title Queue Architecture: Unidirectional Producer-Consumer Pattern
+
+skinparam component {
+  BackgroundColor<<thread>> #E6F3FF
+  BackgroundColor<<queue>> #FFFFCC
+  BackgroundColor<<buffer>> #E8F5E9
+}
+
+package "Thread Layer" {
+
+  component "RX Task\n(Priority 5)\n**PRODUCER**" as RX <<thread>>
+
+  component "TX Task\n(Priority 6)\n**CONSUMER**" as TX <<thread>>
+
+  component "CMD Handler\n(Priority 8)\n**CONSUMER + PRODUCER**" as CMD <<thread>>
+}
+
+package "Queue Layer (168 bytes total)" as QUEUES {
+
+  queue "uart0_to_uart1_queue\n3 descriptors × 12B = 36B" as Q01 <<queue>>
+  queue "uart1_to_uart0_queue\n3 descriptors × 12B = 36B" as Q10 <<queue>>
+  queue "cmd_handler_queue\n8 descriptors × 12B = 96B" as Q_CMD <<queue>>
+}
+
+package "Buffer Pool (52KB total)" as BUFPOOL <<buffer>> {
+  database "RX: 24KB\nTX: 24KB\nCMD: 4128B" as BUFFERS
+}
+
+' Main data flow - Simplified
+RX -[#0000FF,bold]-> QUEUES : **Enqueue descriptors**\n(12B each)
+
+QUEUES -[#0000FF,bold]-> TX : **Forward packets**
+QUEUES -[#FF0000,bold]-> CMD : **Local commands**
+
+CMD -[#00AA00,bold]-> QUEUES : **Enqueue responses**
+
+' Buffer access - Single connection
+BUFPOOL .[#888888].> RX : DMA & Buffers
+BUFPOOL .[#888888].> TX : DMA & Buffers
+BUFPOOL .[#888888].> CMD : CMD Buffer
+
+note left of RX
+  **RX Task (Producer)**
+  • Creates descriptors for forwarding
+  • Routes packets based on dest_addr
+  • Enqueues to appropriate queue
+
+  **Descriptor passed (10B → 12B aligned):**
+  • rx_slot (4B) - Pointer to RX buffer slot
+  • rx_buffer (4B) - Buffer pool for ref counting
+  • length (2B) - Packet size (5-4104 bytes)
+  • (2B padding for ThreadX alignment)
+
+  **Not copied: 4KB packet data stays in RX buffer!**
+end note
+
+note right of CMD
+  **CMD Handler (Dual Role)**
+
+  **As CONSUMER:**
+  • Receives commands from RX Task
+  • Copies data to CMD buffer (4KB)
+  • Releases RX slot immediately
+  • Processes command (slow: 1-50ms)
+
+  **As PRODUCER:**
+  • Allocates TX buffer for response
+  • Constructs response packet
+  • Enqueues to appropriate TX queue
+  • Response routed back to source
+end note
+
+note bottom of Q01
+  **Queue Producers:**
+
+  **uart0_to_uart1_queue:**
+  • RX Task (forwarding UART0→UART1)
+  • CMD Handler (responses to UART1)
+
+  **uart1_to_uart0_queue:**
+  • RX Task (forwarding UART1→UART0)
+  • CMD Handler (responses to UART0)
+
+  **cmd_handler_queue:**
+  • RX Task (local packets only)
+
+  **Total Queue Memory: 168 bytes**
+  (36B + 36B + 96B)
+
+  **Queue Depth Rationale:**
+  • TX queues: 3 descriptors (matches 3-slot buffer pool)
+  • CMD queue: 8 descriptors (handles command bursts)
+
+  **See Also:**
+  • Diagram 11: Complete system data flow (DMA→Buffers→Descriptors→Queues→Tasks)
+  • Section 4.3: Packet Descriptor Field Breakdown
+end note
+
+note bottom of BUFPOOL
+  **CMD Buffer Sizing: 4128 bytes**
+
+  • Content: 4102B (4B header + 4096B payload + 2B CRC)
+  • START/END delimiters not copied to buffer
+  • Buffer: 4128B (4102B + 26B for DMA-230 32-byte alignment)
+  • Calculation: 4102 ÷ 32 = 128.0625 → 129 × 32 = 4128 bytes
+  • Processing time: 1-50ms (slow vs <1ms forwarding)
+  • **Location**: Either AXIS_MEM_10 (shared memory) or TCM
+
+  **Why CMD Buffer Needed?**
+  Without: RX slot blocked → packets dropped
+  With: Copy data (fast) → free RX slot → continue receiving
+
+  **Why NOT 12KB?**
+  • CMD buffer holds ONE command during processing
+  • Queue (8 descriptors) buffers multiple pending commands
+  • **CMD buffer is for command processing ONLY**
+  • IQ data (256KB) uses separate AXIS_MEM_4-7 capture buffers
+  • Firmware/logs use flash memory via FileX/LevelX API
+  • 12KB wastes 8KB memory unnecessarily
+end note
+
+@enduml

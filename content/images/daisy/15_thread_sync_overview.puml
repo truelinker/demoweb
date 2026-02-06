@@ -1,0 +1,137 @@
+@startuml
+title 3-Thread Architecture: Complete Synchronization Overview
+
+' Define components
+component "UART0 FIFO" as UART0
+component "UART1 FIFO" as UART1
+component "DMA-230" as DMA
+
+' Define threads
+rectangle "**RX Task**\n(Priority 5)" as RXTask #lightblue {
+    usecase "Receive packets" as RX1
+    usecase "Route packets" as RX2
+    usecase "Enqueue descriptors" as RX3
+}
+
+rectangle "**TX Task**\n(Priority 6)" as TXTask #lightgreen {
+    usecase "Dequeue descriptors" as TX1
+    usecase "DMA transmission" as TX2
+    usecase "Release buffers" as TX3
+}
+
+rectangle "**CMD Handler**\n(Priority 8)" as CMDTask #lightyellow {
+    usecase "Process commands" as CMD1
+    usecase "Generate responses" as CMD2
+    usecase "Enqueue responses" as CMD3
+}
+
+' Define synchronization primitives
+database "TX_EVENT_FLAGS_GROUP\n(uart_rx_events)\nUART0_RX_READY\nUART1_RX_READY" as Events
+
+database "TX_MUTEX\n(uart0_buffer_mutex)" as MTX0
+database "TX_MUTEX\n(uart1_buffer_mutex)" as MTX1
+database "TX_MUTEX\n(cmd_pool_mutex)" as MTX_CMD
+database "TX_MUTEX\n(uart0_dma_tx_mutex)" as MTX2
+database "TX_MUTEX\n(uart1_dma_tx_mutex)" as MTX3
+
+queue "TX_QUEUE\n(uart0_to_uart1)\ndepth=3" as Q01
+queue "TX_QUEUE\n(uart1_to_uart0)\ndepth=3" as Q10
+queue "TX_QUEUE\n(cmd_handler)\ndepth=3" as QCmd
+queue "TX_QUEUE\n(cmd_to_uart0)\ndepth=3" as QCmd0
+
+' ISR to Task connections
+UART0 -down-> Events: FIFO+DMA ISR\nset(UART0_RX_READY)
+UART1 -down-> Events: FIFO+DMA ISR\nset(UART1_RX_READY)
+DMA -down-> Events: DMA ISR\nset()
+
+' Event Flags to RX Task
+Events -right-> RXTask: wake on\nUART0|UART1
+
+' RX Task to Mutexes (buffer protection)
+RXTask -down-> MTX0: get/put
+RXTask -down-> MTX1: get/put
+
+' RX Task to Queues (descriptor passing)
+RXTask -down-> Q01: send
+RXTask -down-> Q10: send
+RXTask -down-> QCmd: send
+
+' Queues to TX Task (forwarding)
+Q01 -right-> TXTask: receive
+Q10 -right-> TXTask: receive
+
+' Queues to TX Task (CMD responses)
+QCmd0 -right-> TXTask: receive
+
+' TX Task to Mutexes (buffer release)
+TXTask -down-> MTX0: get/put
+TXTask -down-> MTX1: get/put
+TXTask -down-> MTX2: get/put
+TXTask -down-> MTX3: get/put
+
+' TX Task to DMA
+TXTask -up-> DMA: configure &\nstart
+
+' CMD Handler connections
+QCmd -right-> CMDTask: receive
+CMDTask -down-> MTX_CMD: get/put\n(CMD_Pool alloc)
+CMDTask -up-> QCmd0: send\n(to FPGA)
+
+note right of RXTask
+**RX Task Responsibilities**:
+- Wait on event flags (ISR wake)
+- Allocate buffer slots (mutex)
+- **Header-only SLIP decode** (20μs, routing only)
+- Route packets (forward vs local)
+- **Copy local packets to CMD_Pool** (200μs)
+- Release RX buffer fast (300μs total)
+- Enqueue descriptors (queue)
+end note
+
+note right of TXTask
+**TX Task Responsibilities**:
+- Dequeue descriptors (3 queues)
+- Configure DMA (mutex)
+- Start transmission
+- Wait for DMA completion (event)
+- Decrement ref_count (mutex)
+- Release buffer slots (mutex)
+end note
+
+note right of CMDTask
+**CMD Handler Responsibilities**:
+- Dequeue command packets (queue)
+- **Full SLIP decode in CMD_Pool** (320μs in-place)
+- Parse decoded packet (JSON/binary, 50-100μs)
+- Validate CRC-16
+- Process commands (1-50ms)
+- **SLIP encode response** (100-500μs)
+- Enqueue response descriptors (queue)
+- Dual role: Consumer + Producer
+end note
+
+legend bottom
+**Synchronization Primitive Summary (10 total)**:
+- **1 TX_EVENT_FLAGS_GROUP**: Unified ISR-to-Task signaling (UART0_RX_READY, UART1_RX_READY)
+- **5 TX_MUTEX**: Buffer protection + TX serialization
+  • uart0_buffer_mutex, uart1_buffer_mutex: Buffer slot allocation & ref_count
+  • cmd_pool_mutex: CMD_Pool slot allocation
+  • uart0_dma_tx_mutex, uart1_dma_tx_mutex: DMA TX serialization (prevent conflicting configs)
+- **4 TX_QUEUE**: Descriptor passing (forward×2, cmd delivery×1, cmd response×1)
+**Total Memory**: ~365 bytes (mutexes/events: 260B, queues: 144B)
+**Queue Capacity**: 12 descriptors total (can reference up to 36KB buffer data)
+**Architecture**: All CMD responses go to FPGA (Array Manager) via UART0 only
+**SLIP Encoding**: All packets SLIP-encoded with escape sequences (0xDB 0xDC, 0xDB 0xDD)
+**Buffer Pools** (32KB total):
+  • UART0_RX: 12KB (3×4KB, SLIP-encoded, high turnover)
+  • UART1_RX: 12KB (3×4KB, SLIP-encoded, high turnover)
+  • CMD_Pool: 4KB (2×2KB, decoded after copy, slower processing)
+  • UART0_TX: 2KB (2×1KB, local responses, SLIP-encoded)
+  • UART1_TX: 2KB (2×1KB, local responses, SLIP-encoded)
+**Copy Architecture**: Local packets copied from RX buffers to CMD_Pool (200μs)
+  • RX buffer freed in 300μs (header decode 20μs + copy 200μs + overhead 80μs)
+  • Forwarding: Zero-copy DMA (SLIP packets remain encoded, 2.3ms per hop)
+  • Local processing: Full SLIP decode in CMD_Pool (320μs in-place)
+endlegend
+
+@enduml

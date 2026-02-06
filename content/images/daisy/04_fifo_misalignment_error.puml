@@ -1,0 +1,46 @@
+@startuml
+title FIFO Misalignment Error Scenario (2-5% of packets)
+
+participant "UART HW" as UART
+participant "FIFO (16B)" as FIFO
+participant "FIFO ISR" as ISR
+
+== Normal Case (95-98% success) ==
+
+note over UART,ISR #90EE90
+**Aligned START delimiter**
+FIFO threshold triggers with START at position 0
+end note
+
+UART -> FIFO: Bytes arrive\n[0xC0][Hdr0][Hdr1][Hdr2][Hdr3][...]
+FIFO -> ISR: Threshold interrupt (8 bytes)
+ISR -> FIFO: Read 4B header\nStarting at position 0
+FIFO --> ISR: Complete header received
+ISR -> ISR: ✅ Parse header\nSetup DMA for N+3 bytes
+
+== Error Case (2-5% packets) ==
+
+note over UART,ISR #FFB6C1
+**Misaligned START delimiter**
+Garbage bytes before START cause header truncation
+end note
+
+UART -> FIFO: [GB][GB][0xC0][Hdr0][Hdr1][Hdr2][Hdr3][Hdr4]
+note right: GB = Garbage Byte
+FIFO -> ISR: Threshold interrupt (8 bytes)
+
+ISR -> ISR: Scan for START (0xC0)\nFound at position 2
+
+ISR -> FIFO: Read 4B header\nStarting at position 2
+FIFO --> ISR: ⚠️ TRUNCATED:\n[Hdr0][Hdr1][Hdr2][Hdr3]
+note right #FFD700: Only 3 bytes in FIFO!\nHdr3 not received yet
+
+ISR -> ISR: ❌ FIFO underrun\nIncomplete header
+
+== Recovery Flow ==
+
+ISR -> ISR: Discard partial header
+ISR -> ISR: Wait for next\nFIFO threshold
+note over UART,ISR #90EE90: Next packet processes normally
+
+@enduml

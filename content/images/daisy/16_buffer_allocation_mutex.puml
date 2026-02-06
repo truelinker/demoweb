@@ -1,0 +1,80 @@
+@startuml
+title TX_MUTEX Protected Buffer Slot Allocation
+
+start
+
+:RX Task needs buffer slot;
+
+:tx_mutex_get(&uart0_rx_buffer.mutex,\n TX_WAIT_FOREVER);
+
+note right
+**Critical Section Begins**
+Mutex ensures atomic access
+to buffer slot metadata
+end note
+
+partition "**Mutex Protected Region**" {
+    :Search buffer pool\nfor FREE slot;
+
+    if (Free slot found?) then (yes)
+        :slot = &buffer_pool[i];
+        :slot->state = SLOT_IN_USE;
+        :slot->ref_count = 1;
+
+        note right
+        **Atomic Operations**:
+        - State transition
+        - Reference counter init
+        All protected by mutex
+        end note
+
+    else (no)
+        :slot = NULL;
+
+        note right
+        **Buffer Exhaustion**:
+        All 3 slots in use.
+        Return NULL to caller.
+        end note
+    endif
+}
+
+:tx_mutex_put(&uart0_rx_buffer.mutex);
+
+note right
+**Critical Section Ends**
+Mutex released immediately
+after metadata update
+end note
+
+if (slot != NULL?) then (yes)
+    :Configure DMA to slot->buffer;
+    :Start packet reception;
+    stop
+else (no)
+    :Log buffer exhaustion;
+    :Trigger flow control;
+    stop
+endif
+
+floating note
+**Timing Analysis**:
+- Mutex acquire: <1μs (no contention)
+- Slot search: <1μs (3 slots linear scan)
+- Metadata update: <1μs (atomic writes)
+- Mutex release: <1μs
+**Total critical section: ~3-4μs**
+
+**Why Mutex is Necessary**:
+1. RX Task allocates slots
+2. TX Task releases slots
+3. Without mutex: **race condition** on slot->state and ref_count
+4. With mutex: **atomic** state transitions guaranteed
+
+**Alternative NOT used**:
+- Spin locks: Not recommended for RTOS (wastes CPU)
+- Disable interrupts: Too coarse-grained, affects latency
+- Lock-free algorithms: Overkill for 3-slot pool
+end note
+
+@enduml

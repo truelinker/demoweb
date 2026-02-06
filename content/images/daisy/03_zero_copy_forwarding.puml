@@ -1,0 +1,47 @@
+@startuml
+title Zero-Copy Forwarding: Descriptor Passing (11 Steps)
+
+participant "RX Task" as RX
+participant "UART0_RX\nSlot 2" as SLOT
+participant "TX Queue" as QUEUE
+participant "TX Task" as TX
+participant "UART1_TX\nDMA" as DMA
+
+note over RX,DMA: Zero-copy forwarding uses 12B descriptor instead of copying 4KB data
+
+note over RX: Step 1: Packet received
+RX -> SLOT: Allocate slot\nref_count=1
+
+note over SLOT: Step 2: DMA active
+SLOT --> RX: DMA complete\nmark_ready()
+
+note over RX: Step 3: Routing decision
+RX -> RX: Check dest_addr\n→ Forward to UART1
+
+note over RX: Step 4: Increment ref
+RX -> SLOT: ref_count++\n(ref=2)
+
+note over RX: Step 5: Create descriptor
+RX -> RX: packet_descriptor_t desc\n{slot_ptr, size, offset}
+
+note over QUEUE: Step 6: Enqueue
+RX -> QUEUE: tx_queue_send(&desc)\n12 bytes only
+
+note over TX: Step 7: TX task wakeup
+QUEUE -> TX: Dequeue descriptor
+
+note over TX: Step 8: Setup DMA
+TX -> DMA: Setup DMA\nusing desc.slot_ptr
+
+note over DMA: Step 9: DMA transfer
+DMA -> DMA: Transfer 4KB\ndirectly from slot
+
+note over DMA: Step 10: DMA complete
+DMA --> TX: DMA complete IRQ
+
+note over TX: Step 11: Release slot
+TX -> SLOT: release()\nref_count--\n(ref=1→0→FREE)
+
+note over SLOT: Slot returns to FREE\nZero data copying!
+
+@enduml

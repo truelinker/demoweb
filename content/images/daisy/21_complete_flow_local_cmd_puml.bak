@@ -1,0 +1,172 @@
+@startuml
+title Complete System Flow: Local Command Processing with SLIP Encoding (UART0 → CMD Handler → UART0)
+
+participant "UART0 FIFO\n(Hardware)" as UART0
+participant "MUTEX\n(uart0_dma_tx_mutex)" as MTX_TX #orange
+participant "DMA-230\nController" as DMA #lightgreen
+participant "RX Task\n(Priority 5)" as RXTask #red
+participant "MUTEX\n(uart0_buffer_mutex)" as MTX0 #orange
+participant "UART0_Buffer\n(3×4KB slots)\n**SLIP-Encoded**" as BUF0 #lightblue
+participant "QUEUE\n(cmd_handler_queue)\ndepth=3" as QCmd #pink
+participant "CMD Task\n(Priority 8)" as CMDTask #red
+participant "MUTEX\n(cmd_pool_mutex)" as MTX_CMD #orange
+participant "CMD_Pool\n(2×2KB slots)\n**Decoded Data**" as CMD_POOL #lightblue
+participant "QUEUE\n(cmd_to_uart0_queue)\ndepth=3" as QResp #pink
+participant "TX Task\n(Priority 6)" as TXTask #red
+participant "UART0 TX FIFO\n(Hardware)" as UART0_TX
+
+== Phase 1: CMD Packet Arrival ==
+
+UART0 -> RXTask: CMD packet arrives (8B)
+activate UART0 #lightblue
+activate RXTask #red
+
+RXTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+
+RXTask -> BUF0: Find free slot
+activate BUF0 #lightblue
+note right of BUF0: Scan slots:\n#0: IN_USE\n#1: IN_USE \n#2: FREE✓
+
+RXTask -> BUF0: Allocate slot #3
+note right of BUF0: **Slot #3**:\nstate = IN_USE\nref_count = 1
+RXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+
+RXTask -> MTX_TX: tx_mutex_get()
+activate MTX_TX #orange
+RXTask -> DMA: Dest: UART0_Buffer_empty_slot#1+8B,\n Length:payload
+activate DMA #lightgreen
+RXTask -> MTX_TX : tx_mutext_put()
+deactivate MTX_TX
+deactivate RXTask
+
+
+DMA -> BUF0:copy to empty slot#3
+
+DMA -> RXTask: DMA complete interrupt
+deactivate DMA
+
+activate RXTask #red
+RXTask -> RXTask: **Header-only SLIP decode** (20μs)
+note right of RXTask: Decode first 8 bytes to stack:\n[0xC0] [SLIP header...] → 4-byte header\nExtract dst_addr from decoded header\n**Packet remains SLIP-encoded in buffer**
+
+RXTask -> RXTask: Routing decision
+note right of RXTask: dst_addr == my_node_id\n→ Local processing\n**Copy to CMD_Pool required**
+
+RXTask -> MTX_CMD: tx_mutex_get()
+activate MTX_CMD #orange
+
+RXTask -> CMD_POOL: Allocate slot #1
+activate CMD_POOL #lightblue
+note right of CMD_POOL: **Slot #1**:\nstate = IN_USE\n2KB capacity
+
+RXTask -> CMD_POOL: memcpy(CMD_Pool, UART0_RX, 4KB)
+note right of CMD_POOL: **Copy SLIP-encoded packet** (200μs)\nEntire packet copied including escapes\n[0xC0] [SLIP data...] [0xC0]
+
+RXTask -> MTX_CMD: tx_mutex_put()
+deactivate MTX_CMD
+
+RXTask -> MTX0: tx_mutex_get()
+activate MTX0 #orange
+
+RXTask -> BUF0: slot[3].state = FREE
+note right of BUF0: **RX buffer released** (T=300μs)\nAvailable for next packet\n**While CMD processing ongoing**
+
+RXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+
+RXTask -> QCmd: tx_queue_send(&cmd_desc)
+activate QCmd #pink
+note right of QCmd: Enqueue descriptor:\ncmd_slot = &CMD_Pool[1]\nlength = 4KB
+
+QCmd -> CMDTask: Wake up signal
+deactivate RXTask
+
+== Phase 2: CMD Processing (300μs-50ms) ==
+
+activate CMDTask #red
+
+CMDTask -> QCmd: tx_queue_receive(&cmd_desc)
+QCmd -> CMDTask: Descriptor received
+note right of CMDTask: cmd_desc.cmd_slot = &CMD_Pool[1]\nSLIP-encoded data
+deactivate QCmd
+
+CMDTask -> CMD_POOL: **Full SLIP decode in-place** (320μs)
+note right of CMD_POOL: Scan buffer, remove SLIP escapes:\n0xDB 0xDC → 0xC0\n0xDB 0xDD → 0xDB\nRemove framing (0xC0)\n**Decoded length ≤ encoded length**
+
+CMDTask -> CMD_POOL: Parse decoded packet (50-100μs)
+note right of CMD_POOL: Extract:\n- 4-byte header\n- Payload (JSON or binary)\n- 2-byte CRC-16
+
+CMDTask -> CMD_POOL: Validate CRC-16
+note right of CMD_POOL: CRC check on decoded data
+
+CMDTask -> CMDTask: Process command (1-50ms)
+note right of CMDTask: Example: WRITE_CONFIG\nProcessing time: ~5ms\n(Range: 1-50ms depending on command)
+
+== Phase 3: Response Generation (1-50ms) ==
+
+CMDTask -> CMDTask: Generate response data
+note right of CMDTask: Format response based on command:\n- JSON status response\n- Binary data (IQ, firmware)\n- Error codes
+
+CMDTask -> CMDTask: **SLIP encode response** (100-500μs)
+note right of CMDTask: Add SLIP framing:\n[0xC0] [escaped data...] [0xC0]\nEscape 0xC0 → 0xDB 0xDC\nEscape 0xDB → 0xDB 0xDD
+
+CMDTask -> MTX_CMD: tx_mutex_get()
+activate MTX_CMD #orange
+
+CMDTask -> CMD_POOL: Write SLIP-encoded response to slot #1
+note right of CMD_POOL: Response in same slot\n(overwrite decoded command)\nSLIP-encoded for transmission
+
+CMDTask -> MTX_CMD: tx_mutex_put()
+deactivate MTX_CMD
+
+CMDTask -> QResp: tx_queue_send(&resp_desc)
+deactivate CMDTask
+activate QResp #pink
+note right of QResp: Enqueue response\ndescriptor
+
+QResp -> TXTask: Wake up signal
+
+== Phase 4: Response Transmission (50ms-54ms) ==
+
+activate TXTask #red
+
+TXTask -> QResp: tx_queue_receive(&desc)
+QResp -> TXTask: Descriptor received
+note right of TXTask: desc.cmd_slot = &CMD_Pool[1]\nlength = SLIP-encoded response size
+deactivate QResp
+
+TXTask -> MTX_TX: tx_mutex_get(TX_WAIT_FOREVER)
+activate MTX_TX #orange
+
+TXTask -> DMA: Configure DMA transfer
+activate DMA #lightgreen
+note right of DMA: Source: CMD_Pool slot[1] (SLIP-encoded)\nDest: UART0 TX FIFO\nSize: 256B-4KB\n**SLIP framing preserved**
+TXTask -> MTX_TX: tx_mutex_put()
+deactivate MTX_TX
+deactivate TXTask
+
+CMD_POOL -> UART0_TX: Start DMA transmission
+activate UART0_TX #lightblue
+note right of UART0_TX: Hardware FIFO\nto FPGA\n**SLIP-encoded response**
+
+DMA -> TXTask: DMA complete interrupt
+deactivate DMA
+activate TXTask #red
+
+TXTask -> MTX_CMD: tx_mutex_get()
+activate MTX_CMD #orange
+
+TXTask -> CMD_POOL: slot[0].state = FREE
+note right of CMD_POOL: **Slot #1 available**\nfor reuse
+deactivate CMD_POOL
+
+TXTask -> MTX_CMD: tx_mutex_put()
+deactivate MTX_CMD
+
+deactivate TXTask
+deactivate UART0_TX
+deactivate UART0
+
+@enduml

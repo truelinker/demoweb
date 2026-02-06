@@ -1,0 +1,66 @@
+@startuml
+title TX_MUTEX Priority Inheritance: Preventing Priority Inversion
+
+participant "Low Priority\nTask (P8)" as LowTask
+participant "TX_MUTEX\n(Buffer Slot)" as Mutex
+participant "High Priority\nTask (P5)" as HighTask
+participant "ThreadX\nScheduler" as Scheduler
+
+== Normal Operation: No Contention ==
+
+LowTask -> Mutex: tx_mutex_get()
+activate LowTask #lightblue
+Mutex -> LowTask: SUCCESS
+note right of LowTask: Owns mutex\nPriority = 8
+
+LowTask -> LowTask: Update slot->ref_count++
+LowTask -> Mutex: tx_mutex_put()
+deactivate LowTask
+note right of LowTask: Released mutex
+
+== Priority Inversion Scenario ==
+
+LowTask -> Mutex: tx_mutex_get()
+activate LowTask #lightblue
+Mutex -> LowTask: SUCCESS
+note right of LowTask: Owns mutex\nPriority = 8
+
+...Medium Priority Task (P6) preempts Low Priority Task...
+
+HighTask -> Mutex: tx_mutex_get()
+activate HighTask #lightcoral
+note right of HighTask: Blocked on mutex!\nPriority = 5\n(WAITING)
+
+== Priority Inheritance Activates ==
+
+Mutex -> Scheduler: Detect priority inversion
+Scheduler -> LowTask: **Boost priority 8→5**
+note right of LowTask: Inherited priority = 5\n(temporarily elevated)
+deactivate HighTask
+
+LowTask -> LowTask: Continue critical section\n(now at priority 5)
+LowTask -> Mutex: tx_mutex_put()
+
+== Priority Restored ==
+
+Mutex -> Scheduler: Mutex released
+Scheduler -> LowTask: **Restore priority 5→8**
+note right of LowTask: Priority restored to 8
+deactivate LowTask
+
+Scheduler -> HighTask: Unblock and run
+activate HighTask #lightgreen
+Mutex -> HighTask: SUCCESS
+note right of HighTask: Owns mutex\nPriority = 5
+
+HighTask -> HighTask: Update slot metadata
+HighTask -> Mutex: tx_mutex_put()
+deactivate HighTask
+
+note over LowTask, HighTask
+**Key Benefit**: Priority inheritance prevents unbounded priority inversion.
+High priority task (P5) blocked for only ~10μs (Low task critical section),
+not for 100ms+ (entire low-priority task execution).
+end note
+
+@enduml

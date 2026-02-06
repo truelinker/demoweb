@@ -1,0 +1,126 @@
+@startuml
+title Complete System Flow: Packet Forwarding (UART0 → UART1)
+
+!define SLEEPING #lightgray
+!define RUNNING #lightgreen
+!define BLOCKED #lightyellow
+
+participant "UART0 FIFO\n(Hardware)" as UART0
+participant "DMA-230\nController" as DMA
+participant "RX Task\n(Priority 5)" as RXTask
+participant "TX_MUTEX\n(uart0_buffer_mutex)" as MTX0 #orange
+participant "UART0_Buffer\n(3×4KB slots)\nRX + Forward Source" as BUF0 #lightblue
+participant "TX_QUEUE\n(uart0_to_uart1)" as QUEUE #pink
+participant "TX Task\n(Priority 6)" as TXTask
+participant "UART1 TX FIFO\n(Hardware)" as UART1
+
+== Packet Arrival at UART0 FIFO ==
+
+UART0 -> RXTask: Packet arrives (8B)
+activate UART0 #lightblue
+activate RXTask #lightgreen
+note right of RXTask: UART FIFO ISR
+
+RXTask -> MTX0: tx_mutex_get(\nTX_WAIT_FOREVER)
+activate MTX0 #orange
+
+RXTask -> BUF0: Find free slot
+activate BUF0 #lightblue
+note right of BUF0: Scan slots:\n#0: IN_USE\n#1: FREE ✓\n#2: IN_USE
+
+RXTask -> BUF0: Allocate slot #1
+note right of BUF0: **Slot #1**:\nstate = IN_USE\nref_count = 1
+
+RXTask -> BUF0:copy 8B to\n empty slot#1
+RXTask -> MTX0: tx_mutex_put()
+deactivate MTX0
+RXTask -> DMA: Dest: UART0_Buffer_empty_slot#1+8B,\n Length:payload
+deactivate RXTask
+
+activate DMA #lightgreen
+
+
+UART0 -> DMA : Transfer
+DMA -> BUF0: Transfer
+DMA -> RXTask: Done
+deactivate DMA
+activate RXTask #lightgreen
+note right of RXTask: DMA ISR
+
+== RX Task Creates Descriptor ==
+
+RXTask -> RXTask: Create descriptor:
+note right of RXTask
+**packet_descriptor_t**:
+- rx_slot = &UART0_Buffer_slot[1]
+- rx_buffer = &uart0_buffer
+- length = 4KB
+**Size: 12 bytes**
+end note
+
+== RX Task Sends to Queue ==
+
+RXTask -> QUEUE: tx_queue_send(\n&desc, TX_NO_WAIT)
+activate QUEUE #pink
+note right of QUEUE: **Queue operation**:\n12 bytes copied
+
+QUEUE -> QUEUE: Enqueue descriptor
+note right of QUEUE: Queue depth:\n0 → 1 message
+
+RXTask -> TXTask: TX_EVENT:Wake up signal
+
+deactivate RXTask
+
+== TX Task Wakes Up ==
+
+activate TXTask RUNNING
+
+TXTask -> QUEUE: tx_queue_receive(\n&desc, TX_WAIT_FOREVER)
+QUEUE -> TXTask: Descriptor received
+note right of TXTask: desc.rx_slot = &UART0_Buffer_slot[1]\ndesc.length = 4KB
+
+deactivate QUEUE
+
+== TX Task Configures DMA ==
+
+TXTask -> DMA: Configure DMA transfer:
+activate DMA #lightgreen
+note right of DMA
+**DMA Configuration**:
+Source: UART0_Buffer slot[1].buffer
+         (Memory address)
+Dest: UART1 TX FIFO register
+      (Peripheral)
+Direction: MEMORY_TO_PERIPHERAL
+Size: Start + Header + Payload + CRC + End
+end note
+
+TXTask -> DMA: Start DMA transmission
+deactivate TXTask
+note right of DMA: DMA transfer\nstarted
+
+== DMA Transfers to UART1 TX FIFO ==
+BUF0 -> DMA: Transfer
+DMA -> UART1: Transfer data to FIFO
+activate UART1 #lightgreen
+note right of UART1: Hardware FIFO\nfills up
+
+== DMA Transfer Complete ==
+
+DMA -> TXTask: DMA complete interrupt
+deactivate DMA
+
+activate TXTask #lightgreen
+
+TXTask -> BUF0: slot[1].ref_count--
+note right of BUF0: ref_count: 1 → 0\n(TX released)
+
+TXTask -> BUF0: slot[1].state = FREE
+deactivate TXTask
+note right of BUF0: **Slot #1 available**\nfor reuse
+deactivate BUF0
+
+deactivate UART1
+deactivate UART0
+
+@enduml

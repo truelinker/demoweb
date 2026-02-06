@@ -1,0 +1,98 @@
+@startuml
+title TX_QUEUE Packet Forwarding: Zero-Copy Descriptor Passing
+
+participant "RX Task\n(Producer)" as RXTask
+participant "TX_MUTEX\n(Buffer)" as Mutex
+participant "RX Buffer Slot\n(4KB data)" as Buffer
+participant "TX_QUEUE\n(uart0_to_uart1)" as Queue
+participant "TX Task\n(Consumer)" as TXTask
+participant "DMA-230" as DMA
+
+== Packet Reception ==
+
+RXTask -> RXTask: Received packet in slot #2
+activate RXTask #lightblue
+note right of Buffer: Slot #2:\n[4KB packet data]\nref_count = 1
+
+RXTask -> RXTask: Parse header\nDst = H64_3 (forward)
+
+== Zero-Copy Descriptor Creation ==
+
+RXTask -> RXTask: Create descriptor:
+note right of RXTask
+**packet_descriptor_t**:
+- rx_slot = &slot[2]
+- rx_buffer = &uart0_rx_buffer
+- length = 1024
+**Size: 10 bytes (12 bytes with padding)**
+end note
+
+== Reference Counting (Mutex Protected) ==
+
+RXTask -> Mutex: tx_mutex_get()
+Mutex -> RXTask: SUCCESS
+RXTask -> Buffer: slot[2].ref_count++
+note right of Buffer: ref_count: 1→2\n(RX + TX both reference)
+RXTask -> Mutex: tx_mutex_put()
+
+== Enqueue Descriptor ==
+
+RXTask -> Queue: tx_queue_send(&desc, TX_NO_WAIT)
+note right of Queue: **Queue operation**:\n12 bytes copied\n(NOT 4KB data!)
+
+Queue -> Queue: Descriptor stored\nQueue count: 0→1
+
+deactivate RXTask
+
+note over RXTask, Queue
+**Key Insight**: Only 12-byte descriptor copied to queue,
+not 4KB packet data. Buffer slot #2 remains in RX buffer pool.
+end note
+
+== TX Task Dequeues ==
+
+TXTask -> Queue: tx_queue_receive(&desc, TX_WAIT_FOREVER)
+activate TXTask #lightgreen
+
+Queue -> TXTask: Descriptor received
+note right of TXTask: desc.rx_slot = &slot[2]\ndesc.length = 1024
+
+TXTask -> Buffer: Access slot[2].buffer
+note right of Buffer: **Zero-copy read**:\nTX directly accesses\nRX buffer data
+
+== DMA Transmission ==
+
+TXTask -> DMA: Configure transfer:
+note right of DMA: Source: slot[2].buffer\nDest: UART1 FIFO\nSize: 1024 bytes
+
+TXTask -> DMA: Start transmission
+DMA -> DMA: Transfer to UART1 FIFO
+note right of DMA: 8-12μs for 1KB @960kbps
+
+DMA -> TXTask: DMA complete interrupt
+
+== Buffer Release (Reference Counting) ==
+
+TXTask -> Mutex: tx_mutex_get()
+Mutex -> TXTask: SUCCESS
+TXTask -> Buffer: slot[2].ref_count--
+note right of Buffer: ref_count: 2→1\n(TX released)
+
+alt ref_count == 0
+    TXTask -> Buffer: Mark slot #2 FREE
+else ref_count > 0
+    TXTask -> Buffer: Keep slot allocated\n(RX still owns it)
+end
+
+TXTask -> Mutex: tx_mutex_put()
+deactivate TXTask
+
+note over RXTask, DMA
+**Performance Analysis**:
+- Queue operation: 12 bytes copied (99% reduction vs 4KB)
+- Memory efficiency: 3 descriptors = 36 bytes (vs 12KB for data copying)
+- Zero latency: No memcpy() delays
+- Cache friendly: Descriptors fit in CPU cache (12B << 32KB L1)
+end note
+
+@enduml

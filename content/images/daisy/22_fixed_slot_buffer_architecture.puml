@@ -1,0 +1,28 @@
+@startuml
+title Fixed-Slot Buffer Architecture
+skinparam rectangleBackgroundColor<<free>> LightGreen
+skinparam rectangleBackgroundColor<<allocated>> Yellow
+skinparam rectangleBackgroundColor<<pending>> Orange
+skinparam rectangleBorderColor Black
+skinparam rectangleFontSize 10
+
+' UART0_Buffer
+rectangle "**UART0_Buffer (12,384 bytes)**" #AliceBlue {
+  rectangle "Slot #0\n4128B\nstate: FREE\nref_count: 0" <<free>> as U0S0
+  rectangle "Slot #1\n4128B\nstate: ALLOCATED\nref_count: 1" <<allocated>> as U0S1
+  rectangle "Slot #2\n4128B\nstate: PENDING_RELEASE\nref_count: 2" <<pending>> as U0S2
+}
+
+' UART1_Buffer
+rectangle "**UART1_Buffer (12,384 bytes)**" #AliceBlue {
+  rectangle "Slot #0\n4128B\nstate: ALLOCATED\nref_count: 1" <<allocated>> as U1S0
+  rectangle "Slot #1\n4128B\nstate: FREE\nref_count: 0" <<free>> as U1S1
+  rectangle "Slot #2\n4128B\nstate: FREE\nref_count: 0" <<free>> as U1S2
+}
+
+' CMD_Memory
+rectangle "**CMD_Memory (4,320 bytes)**" #Lavender {
+  rectangle "Single Buffer\n4320B\nSerial CMD processing\n(one at a time)" <<allocated>> as CMEM
+}
+
+@enduml

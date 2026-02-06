@@ -1,0 +1,50 @@
+@startuml
+title Packet Slot State Machine with Reference Counting
+
+[*] --> FREE
+
+state FREE #lightgreen {
+  FREE: ref_count=0
+  FREE: Initial state
+}
+
+state RECEIVING #lightyellow {
+  RECEIVING: DMA active
+}
+
+state READY #lightblue {
+  READY: Routing decision
+}
+
+state FORWARDING #orange {
+  FORWARDING: TX task processing
+}
+
+state PROCESSING #plum {
+  PROCESSING: CMD handler processing
+}
+
+FREE --> RECEIVING: allocate()\nref=1
+RECEIVING --> READY: DMA complete\nmark_ready()
+
+READY --> FORWARDING: TX route\nref++
+READY --> PROCESSING: Local pkt\nref++
+
+FORWARDING --> FREE: DMA done\nrelease()
+PROCESSING --> FREE: CMD done\nrelease()
+
+note right of READY
+  **Broadcast path (dashed)**:
+  ref_count=3 (RX + TX + CMD)
+
+  **Unicast path**:
+  ref_count=1 (single consumer)
+end note
+
+note bottom of FREE
+  Slot returns to FREE when
+  ref_count reaches 0
+  (all consumers released)
+end note
+
+@enduml

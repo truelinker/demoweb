@@ -1,0 +1,142 @@
+@startuml
+title Buffer Architecture Comparison: Fixed-Slot vs Circular Buffer (with Immediate CMD Release)
+
+!define SLOT_FREE #white
+!define SLOT_INUSE #lightblue
+!define SLOT_GAP #pink
+!define PACKET_FWD #lightgreen
+!define PACKET_CMD #lightyellow
+
+<style>
+rectangle {
+    BackgroundColor white
+    BorderColor black
+    BorderThickness 2
+}
+</style>
+
+' Left side: Fixed-Slot Architecture
+rectangle "**Fixed-Slot Architecture (3×4KB)**" as FIXED {
+    rectangle "**T=0ms: PKT1 (512B FWD) arrives**" as F0 {
+        rectangle "Slot #0: PKT1:512B + 3584B waste\nIN_USE, ts=T0" as FS0_T0 SLOT_INUSE
+        rectangle "Slot #1: FREE" as FS1_T0 SLOT_FREE
+        rectangle "Slot #2: FREE" as FS2_T0 SLOT_FREE
+    }
+
+    rectangle "**T=1ms: PKT2 (512B CMD) arrives**" as F1 {
+        rectangle "Slot #0: PKT1:512B\nIN_USE, ts=T0" as FS0_T1 SLOT_INUSE
+        rectangle "Slot #1: PKT2:512B + 3584B waste\nIN_USE, ts=T1 ← CMD" as FS1_T1 PACKET_CMD
+        rectangle "Slot #2: FREE" as FS2_T1 SLOT_FREE
+    }
+
+    rectangle "**T=1.3ms: PKT2 copied to CMD_Pool, RELEASED**" as F13 {
+        rectangle "Slot #0: PKT1:512B\nIN_USE, ts=T0" as FS0_T13 SLOT_INUSE
+        rectangle "Slot #1: ***FREE***\nReleased immediately ✅" as FS1_T13 SLOT_FREE
+        rectangle "Slot #2: FREE" as FS2_T13 SLOT_FREE
+    }
+
+    rectangle "**T=2ms: PKT3 (1500B FWD) arrives**" as F2 {
+        rectangle "Slot #0: PKT1:512B\nIN_USE, ts=T0" as FS0_T2 SLOT_INUSE
+        rectangle "Slot #1: PKT3:1500B + 2596B waste\nIN_USE, ts=T2 (REUSED slot)" as FS1_T2 PACKET_FWD
+        rectangle "Slot #2: FREE" as FS2_T2 SLOT_FREE
+    }
+
+    rectangle "**T=2.3ms: PKT1 forwarded, RELEASED**" as F23 {
+        rectangle "Slot #0: ***FREE***\nReleased in FIFO order (by ts)" as FS0_T23 SLOT_FREE
+        rectangle "Slot #1: PKT3:1500B\nIN_USE, ts=T2" as FS1_T23 SLOT_INUSE
+        rectangle "Slot #2: FREE" as FS2_T23 SLOT_FREE
+    }
+
+    note right of F23
+        **Key Characteristics**:
+        • Zero external fragmentation
+        • FIFO maintained by timestamp
+        • CMD release: Simple state change
+        • Slot reuse: Immediate
+        • Worst-case: 8μs (deterministic)
+        • Implementation: ~125 LOC
+    end note
+}
+
+' Right side: Circular Buffer Architecture
+rectangle "**Circular Buffer Architecture (12KB)**" as CIRCULAR {
+    rectangle "**T=0ms: PKT1 (512B FWD) arrives**" as C0 {
+        rectangle "[PKT1:512B|--------FREE SPACE (11776B)--------]\nhead=512, tail=0" as CB_T0 SLOT_INUSE
+    }
+
+    rectangle "**T=1ms: PKT2 (512B CMD) arrives**" as C1 {
+        rectangle "[PKT1:512B|PKT2:512B|-----FREE SPACE (11264B)-----]\nhead=1024, tail=0" as CB_T1 PACKET_CMD
+    }
+
+    rectangle "**T=1.3ms: PKT2 copied to CMD_Pool, RELEASED**" as C13 {
+        rectangle "[PKT1:512B|***GAP:512B***|-----FREE SPACE-----]\nhead=1024, tail=0 (stuck!) ⚠️" as CB_T13 SLOT_GAP
+        note right
+            **Problem**: Gap created!
+            Gap @ offset 512, size 512B
+            Tail cannot advance past gap
+            Space UNUSABLE until compaction
+        end note
+    }
+
+    rectangle "**T=2ms: PKT3 (1500B FWD) arrives**" as C2 {
+        rectangle "[PKT1:512B|***GAP:512B***|PKT3:1500B|--FREE (9764B)--]\nhead=2524, tail=0" as CB_T2 SLOT_GAP
+    }
+
+    rectangle "**T=2.3ms: PKT1 forwarded, RELEASED**" as C23 {
+        rectangle "[***RELEASED***|***GAP:512B***|PKT3:1500B|--FREE--]\ntail=512 (cannot skip gap!)" as CB_T23 SLOT_GAP
+        note right
+            **Gap accumulation**:
+            Released space + Gap = 1024B unusable
+            Tail stuck at 512 (gap boundary)
+            Requires compaction (50-200μs)
+        end note
+    }
+
+    rectangle "**T=10ms: Compaction triggered (every 20-30 packets)**" as C10 {
+        rectangle "[PKT3:1500B|----------FREE SPACE (10788B)----------]\nhead=1500, tail=0, gaps cleared ✓" as CB_T10 PACKET_FWD
+        note right
+            **Compaction cost**:
+            memmove(temp, PKT3, 1500B)
+            memcpy(buffer, temp, 1500B)
+            Overhead: 50-200μs
+            Latency variance: 20× (10μs→200μs)
+        end note
+    }
+
+    note right of C10
+        **Key Characteristics**:
+        • 21% external fragmentation
+        • Dual tracking (physical + logical FIFO)
+        • CMD release: Creates permanent gaps
+        • Gap reuse: Requires compaction
+        • Worst-case: 200μs (variable)
+        • Implementation: ~550 LOC
+    end note
+}
+
+legend bottom
+**Performance Comparison**:
+
+| Metric | Circular Buffer | Fixed-Slot | Winner |
+|--------|----------------|------------|--------|
+| **Memory Efficiency** | 79% (with gaps) | 23.4% | Circular (3.4×) |
+| **Buffer Capacity** | 10-12 packets | 3 packets | Circular (4×) |
+| **Worst-Case Latency** | 200μs (compaction) | **8μs** | **Fixed-Slot (25×)** ✅ |
+| **Latency Variance** | 20× (10μs→200μs) | **1.6×** (5μs→8μs) | **Fixed-Slot** ✅ |
+| **Determinism** | Poor (variable) | **Excellent** (bounded) | **Fixed-Slot** ✅ |
+| **DMA Zero-Copy** | Complex (wraparound) | **Trivial** (contiguous) | **Fixed-Slot** ✅ |
+| **Implementation** | ~550 LOC | **~125 LOC** | **Fixed-Slot (4.4×)** ✅ |
+| **FIFO Guarantee** | Dual tracking (144B) | **Timestamp (16B)** | **Fixed-Slot (9×)** ✅ |
+
+**Architectural Decision**: **Fixed-Slot (3×4KB)** ✅
+**Rationale**: For real-time embedded systems, **determinism > memory efficiency**
+**Trade-Off**: Accept 76.6% internal fragmentation for **25× deterministic performance**
+
+**Variable packet sizes (<1KB) do NOT favor circular buffers when**:
+• SLIP encoding prevents in-place gap reuse
+• Immediate CMD release creates 21% external fragmentation
+• DMA zero-copy requires contiguous memory
+• Real-time determinism is mandatory (200μs stalls unacceptable)
+endlegend
+
+@enduml
