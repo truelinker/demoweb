@@ -124,6 +124,17 @@ export default function Home() {
       type: "career",
       companyKey: "greenWaveRadio"
     },
+    {
+      title: "Document Chatbot with AnythingLLM",
+      description: "RAG-based document chatbot integrating JIRA and Microsoft SharePoint, enabling engineers to search project tickets and shared documents through a conversational interface.",
+      category: "AI",
+      technologies: ["RAG", "AnythingLLM", "JIRA", "SharePoint"],
+      externalLink: "/career/document-chatbot-anythingllm",
+      githubLink: "https://github.com/truelinker/anything-llm/tree/integrated_sharepoint",
+      featured: true,
+      type: "career",
+      companyKey: "greenWaveRadio"
+    },
     // Add portfolio projects
     {
       title: "Word Memorization App",
@@ -175,6 +186,7 @@ export default function Home() {
       case 'Driver': return 'from-green-500 to-green-700';
       case 'Communication': return 'from-yellow-500 to-yellow-700';
       case 'Embedded': return 'from-orange-500 to-orange-700';
+      case 'AI': return 'from-cyan-500 to-cyan-700';
       default: return 'from-teal-500 to-teal-700';
     }
   };
@@ -204,10 +216,14 @@ export default function Home() {
         return isActive 
           ? 'bg-yellow-600 text-white' 
           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'Embedded': 
-        return isActive 
-          ? 'bg-orange-600 text-white' 
+      case 'Embedded':
+        return isActive
+          ? 'bg-orange-600 text-white'
           : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+      case 'AI':
+        return isActive
+          ? 'bg-cyan-600 text-white'
+          : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
       default: 
         return isActive 
           ? 'bg-teal-600 text-white' 
@@ -252,6 +268,12 @@ export default function Home() {
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+        );
+      case 'AI':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         );
       default:

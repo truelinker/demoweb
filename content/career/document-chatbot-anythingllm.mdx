@@ -1,0 +1,120 @@
+---
+title: "Document Chatbot with AnythingLLM"
+subtitle: "RAG-Based Knowledge Assistant Integrating JIRA and SharePoint"
+excerpt: "Built a Retrieval-Augmented Generation (RAG) chatbot using AnythingLLM that integrates JIRA and Microsoft SharePoint, enabling engineers to search project tickets and shared documents through a conversational interface"
+date: 2025-06-15
+author: "Myung Guk Lee"
+draft: false
+series:
+  - AI/ML
+  - Developer Tools
+tags:
+  - RAG
+  - AnythingLLM
+  - JIRA
+  - SharePoint
+  - LLM
+  - Chatbot
+  - Document Search
+categories:
+  - Technical Projects
+layout: single
+---
+
+## Project Overview
+
+Implemented a Document RAG (Retrieval-Augmented Generation) chatbot using [AnythingLLM](https://github.com/truelinker/anything-llm/tree/integrated_sharepoint) to help engineers at GreenWave Radio quickly search and retrieve information from JIRA tickets and Microsoft SharePoint documents through a natural language conversational interface.
+
+Before this system, engineers had to manually search through multiple platforms — switching between JIRA for project tracking and SharePoint for shared documentation. This chatbot unifies access to both knowledge sources into a single conversational interface.
+
+## System Architecture
+
+The system is built on a RAG pipeline that connects to two primary data sources:
+
+```
+                    ┌─────────────┐
+                    │   Engineer  │
+                    │  (Browser)  │
+                    └──────┬──────┘
+                           │ Natural Language Query
+                           ▼
+                  ┌─────────────────┐
+                  │   AnythingLLM   │
+                  │   Web Interface │
+                  └────────┬────────┘
+                           │
+                           ▼
+              ┌────────────────────────┐
+              │     RAG Pipeline       │
+              │                        │
+              │  Query → Embedding →   │
+              │  Vector Search →       │
+              │  Context Assembly →    │
+              │  LLM Response          │
+              └───┬────────────┬───────┘
+                  │            │
+          ┌───────▼──┐   ┌────▼───────┐
+          │  JIRA    │   │ SharePoint │
+          │Connector │   │ Connector  │
+          └───┬──────┘   └─────┬──────┘
+              │                │
+       ┌──────▼──┐      ┌─────▼──────┐
+       │  JIRA   │      │ SharePoint │
+       │  Server │      │   Server   │
+       └─────────┘      └────────────┘
+```
+
+### Key Components
+
+- **AnythingLLM**: Open-source platform providing the chat interface, document management, and RAG orchestration
+- **SharePoint Connector**: Custom integration that crawls and indexes documents from Microsoft SharePoint sites and document libraries
+- **JIRA Connector**: Pulls ticket data including summaries, descriptions, comments, and attachments for indexing
+- **Vector Database**: Stores document embeddings for semantic similarity search
+- **LLM Backend**: Generates natural language responses grounded in retrieved document context
+
+## SharePoint Integration
+
+The core contribution was building the SharePoint connector on a forked branch of AnythingLLM ([integrated_sharepoint](https://github.com/truelinker/anything-llm/tree/integrated_sharepoint)). This connector:
+
+- **Authenticates** with Microsoft SharePoint using OAuth 2.0 / Microsoft Graph API
+- **Crawls** document libraries and site pages recursively
+- **Extracts** text content from various file formats (Word, PDF, PowerPoint, Excel)
+- **Chunks** documents into appropriately sized segments for embedding
+- **Syncs** periodically to keep the vector store up-to-date with new or modified documents
+
+## JIRA Integration
+
+The JIRA connector indexes project management data:
+
+- **Ticket Metadata**: Issue keys, summaries, statuses, assignees, and labels
+- **Descriptions & Comments**: Full text content from ticket bodies and comment threads
+- **Attachments**: Text extraction from attached documents
+- **Project Filtering**: Configurable to index specific JIRA projects relevant to the team
+
+## RAG Pipeline
+
+The Retrieval-Augmented Generation pipeline ensures accurate, grounded responses:
+
+1. **Query Processing**: The user's natural language question is converted into an embedding vector
+2. **Vector Search**: The embedding is used to find the most semantically similar document chunks from the vector database
+3. **Context Assembly**: Retrieved chunks are assembled as context for the LLM prompt
+4. **Response Generation**: The LLM generates a response grounded in the retrieved documents, with source citations
+
+## Use Cases
+
+Engineers use the chatbot for various daily tasks:
+
+- **"What was the resolution for JIRA ticket RU-1234?"** — Searches JIRA history for specific ticket details and resolution steps
+- **"What design decisions were made for the boot sequence?"** — Finds related JIRA discussions and SharePoint design documents
+- **"Show me the test procedure for RF power calibration"** — Locates test documentation from SharePoint
+
+## Impact
+
+- Reduced average document search time from minutes to seconds
+- Eliminated context-switching between JIRA and SharePoint for information lookup
+- Enabled new team members to quickly find institutional knowledge
+- Provided a single conversational interface for accessing distributed project documentation
+
+## Conclusion
+
+The Document RAG chatbot demonstrates how open-source LLM tools like AnythingLLM can be extended with custom connectors to create practical knowledge management solutions. By integrating JIRA and SharePoint into a unified search interface, the system significantly improved engineering productivity and knowledge accessibility across the team.
